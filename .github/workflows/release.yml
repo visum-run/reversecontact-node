@@ -110,7 +110,7 @@ jobs:
         run: |
           args=(--access public --provenance)
           if [[ "$PRERELEASE" == 'true' ]]; then args+=(--tag next); fi
-          npm publish artifacts/*.tgz "${args[@]}"
+          npm publish ./artifacts/*.tgz "${args[@]}"
 
   github-release:
     needs: [build, publish]

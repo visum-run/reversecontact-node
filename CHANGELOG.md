@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1 (2026-10-29)
+
+First npm release. Version 0.1.0 was tagged but never published.
 
 - Initial official Reverse Contact TypeScript and JavaScript SDK.
 - All 21 production V2 snapshot operations.

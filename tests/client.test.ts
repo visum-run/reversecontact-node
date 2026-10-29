@@ -55,7 +55,8 @@ describe('configuration and responses', () => {
     expect(headers.get('x-default')).toBe('yes')
     expect(headers.get('x-override')).toBe('new')
     expect(headers.has('x-request-origin')).toBe(false)
-    expect(headers.get('user-agent')).toMatch(/^reversecontact-node\/0\.1\.0 \(node\//)
+    const userAgent = headers.get('user-agent') ?? ''
+    expect(userAgent.startsWith(`reversecontact-node/${VERSION} (node/`)).toBe(true)
     expect(headers.get('user-agent')).not.toMatch(/\b(make|zapier)\b|reversecontact-cli/i)
     expect(VERSION).toBe(packageJson.version)
     expect(result.data).toBeNull()
