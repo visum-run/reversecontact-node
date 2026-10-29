@@ -1,0 +1,79 @@
+{
+  "name": "@reverse-contact/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript and JavaScript SDK for the Reverse Contact API",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "homepage": "https://docs.reversecontact.com/docs/sdk/javascript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/visum-run/reversecontact-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/visum-run/reversecontact-node/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "keywords": [
+    "reverse contact",
+    "reversecontact",
+    "enrichment",
+    "b2b data",
+    "people search",
+    "company data",
+    "email finder",
+    "typescript",
+    "javascript",
+    "sdk",
+    "api"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "check:package": "publint && attw --pack .",
+    "check:consumer": "tsc --project scripts/consumer-check/tsconfig.json",
+    "check": "bun run typecheck && bun run lint && bun run test && bun run build && bun run check:package && bun run check:consumer"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "2.3.13",
+    "@types/node": "^22",
+    "openapi-typescript": "^7.13.0",
+    "publint": "^0.3.25",
+    "tsdown": "^0.23.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12"
+  }
+}
