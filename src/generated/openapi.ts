@@ -1209,7 +1209,7 @@ export interface components {
             keywords?: string;
             /**
              * @description Current position started within the last N days
-             * @enum {number}
+             * @enum {integer}
              */
             changedJobsWithinDays?: 30 | 60 | 90 | 120;
             location?: {
@@ -1364,7 +1364,7 @@ export interface components {
             keywords?: string;
             /**
              * @description Current position started within the last N days
-             * @enum {number}
+             * @enum {integer}
              */
             changedJobsWithinDays?: 30 | 60 | 90 | 120;
             location?: {

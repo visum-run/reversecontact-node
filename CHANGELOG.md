@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 (2026-10-29)
+
+- Types generated from the updated API description, which now documents counts, page sizes and other whole-number fields as integers. The TypeScript types are unchanged (`number`); only the generated documentation comments differ.
+
 ## 0.1.3 (2026-10-29)
 
 - The README and the examples pass the API key explicitly: `new ReverseContact({ apiKey: process.env.RC_API_KEY })`. Without `apiKey`, the client still reads `RC_API_KEY`.
