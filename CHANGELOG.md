@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 (2026-10-29)
+
+- README rewritten for GitHub and npm: links to the documentation, a quickstart that runs as pasted, a table of every resource and method, requirements, versioning and support.
+- An `idempotencyKey` that contains a space is refused before the request is sent, as the API refuses it.
+- `JobFailedError.notFound` is also `true` for `phone-not-found`, the outcome of a phone lookup that finds no number.
+
 ## 0.1.1 (2026-10-29)
 
 First npm release. Version 0.1.0 was tagged but never published.

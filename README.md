@@ -1,35 +1,45 @@
 # Reverse Contact TypeScript SDK
 
-The official TypeScript and JavaScript client for the Reverse Contact V2 API.
-It includes all 21 operations in the bundled API snapshot, typed results, automatic retries,
-cursor pagination, and asynchronous jobs. It has no runtime dependencies.
+[![npm version](https://img.shields.io/npm/v/@reverse-contact/sdk)](https://www.npmjs.com/package/@reverse-contact/sdk)
+[![CI](https://img.shields.io/github/actions/workflow/status/visum-run/reversecontact-node/ci.yml?branch=main&label=CI)](https://github.com/visum-run/reversecontact-node/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/@reverse-contact/sdk)](https://github.com/visum-run/reversecontact-node/blob/main/LICENSE)
 
-## Install
+Reverse Contact is a B2B data API: enrich people and companies, fetch profiles, search people
+and organizations, and find email addresses and phone numbers.
+
+This is the official TypeScript and JavaScript client for the Reverse Contact V2 API: typed
+results, automatic retries, cursor pagination and asynchronous jobs, with no runtime dependencies.
+
+[Documentation](https://docs.reversecontact.com/sdk/javascript) ·
+[API reference](https://docs.reversecontact.com/api-reference) ·
+[Get an API key](https://app.reversecontact.com) ·
+[Changelog](https://github.com/visum-run/reversecontact-node/blob/main/CHANGELOG.md)
+
+## Installation
 
 ```sh
 npm install @reverse-contact/sdk
 ```
 
-Use Node.js 22+, Bun, Deno, or an edge runtime with the standard Fetch APIs,
-AbortController, and Web Crypto (`crypto.randomUUID`).
-ESM and CommonJS are supported:
-
-```ts
-import ReverseContact from '@reverse-contact/sdk'
-// CommonJS: const { ReverseContact } = require('@reverse-contact/sdk')
-
-const client = new ReverseContact() // reads RC_API_KEY
-```
-
-Store `RC_API_KEY` in your server environment. Never put it in browser code.
-Construction in a browser throws unless you explicitly set `dangerouslyAllowBrowser: true`.
-This opt-out exposes your key to the browser user; use a backend for customer applications.
+The package also installs with `pnpm add`, `yarn add`, `bun add`, or `deno add npm:@reverse-contact/sdk`.
+It runs on Node.js 22 or later, Bun, Deno, and edge runtimes (see Requirements below).
 
 ## Quickstart
 
-### Enrich a person
+Create an API key in the [Reverse Contact app](https://app.reversecontact.com) and export it:
+
+```sh
+export RC_API_KEY="your-api-key"
+```
+
+Save this file as `quickstart.mjs` and run `node quickstart.mjs`, or save it as `quickstart.ts`
+and run `bun quickstart.ts`:
 
 ```ts
+import ReverseContact from '@reverse-contact/sdk'
+
+const client = new ReverseContact() // reads RC_API_KEY
+
 const match = await client.enrich.person({ email: 'jane@example.com' })
 if (match === null) {
   console.log('No confident match')
@@ -41,12 +51,56 @@ if (match === null) {
 }
 ```
 
+A lookup without a match returns `null` and costs nothing.
+
+Store `RC_API_KEY` in your server environment. Never put it in browser code.
+Construction in a browser throws unless you explicitly set `dangerouslyAllowBrowser: true`.
+This opt-out exposes your key to the browser user; use a backend for customer applications.
+
+## Resources
+
+| Resource | Methods | Returns |
+| --- | --- | --- |
+| `client.enrich` | `person`, `company` | The matched profile, or `null` when nothing matches |
+| `client.fetch` | `person`, `company` | A cached profile, or `null` when nothing matches |
+| | `checkPerson`, `checkCompany` | Whether a profile exists and how fresh it is (free) |
+| | `personLive`, `companyLive` | A `Job` that fetches a fresh profile |
+| `client.search` | `people`, `peopleByPrompt`, `peopleLookalike` | A `Page` of people |
+| | `organizations`, `organizationsByPrompt` | A `Page` of organizations |
+| | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
+| | `countPeople`, `countOrganizations` | The number of matches (free) |
+| | `peopleFields`, `organizationsFields` | The available search filters (free) |
+| `client.contact` | `findEmail`, `findPhone` | A `Job` that finds email addresses or phone numbers |
+| `client.jobs` | `retrieve`, `wait` | One job snapshot, or the final job result |
+| `client.usage` | `retrieve` | Credit balance and rate limits, in `quotas` (free) |
+
+Every method accepts request options as its last argument (see Configuration). Credit costs
+per endpoint are listed in the [API reference](https://docs.reversecontact.com/api-reference).
+
+## Usage
+
+### Enrich and fetch profiles
+
+```ts
+const company = await client.enrich.company({ domain: 'example.com' })
+const saved = await client.fetch.company({ url: 'https://social.com/company/acme' })
+const personExists = await client.fetch.checkPerson({ url: 'https://social.com/in/janedoe' })
+const companyExists = await client.fetch.checkCompany({ url: 'https://social.com/company/acme' })
+const liveCompany = await client.fetch.companyLive({ url: 'https://social.com/company/acme' })
+```
+
 `enrich.person`, `enrich.company`, `fetch.person`, and `fetch.company` return `null`
 for HTTP 404 no-match results. These lookups are free when no match is found.
 An unknown API route still raises `NotFoundError`. Other resources always raise on 404.
 Check `isFullProfile` before using full-profile-only enrichment fields.
 
-### Count before searching
+Fetch returns the profile directly in `result.data`. Enrichment nests it in
+`result.data.person` or `result.data.company`. The checks are free, but the API can still
+require a sufficient workspace balance.
+
+### Search
+
+Count before searching:
 
 ```ts
 const filters = { firstName: 'Jane' }
@@ -62,6 +116,25 @@ Search is billed per delivered result. Every search iterator requires `maxResult
 It requests at most that many results and lowers `perPage` on the last request.
 `maxResults: 0` makes no request. An iterator fetches lazily, without prefetching.
 The maximum is a result budget, not a monetary credit ceiling; check your plan and quota metadata.
+
+The other search methods, and the filter catalogs:
+
+```ts
+const fields = await client.search.peopleFields()
+const organizationFields = await client.search.organizationsFields()
+const page = await client.search.people({ firstName: 'Jane', perPage: 10 })
+const prompt = await client.search.peopleByPrompt({ prompt: 'Software founders in Paris', perPage: 10 })
+console.log(prompt.interpretation)
+const similar = await client.search.peopleLookalike({ url: 'https://social.com/in/janedoe', perPage: 10 })
+const organizations = await client.search.organizations({ companyName: 'Acme', perPage: 10 })
+const byPrompt = await client.search.organizationsByPrompt({ prompt: 'Software companies in France', perPage: 10 })
+const organizationCount = await client.search.countOrganizations({ companyName: 'Acme' })
+```
+
+Iterators: `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`,
+`iterOrganizations`, and `iterOrganizationsByPrompt`. All accept the same search filters
+as their page method, an optional `perPage` (default 25), and required `{ maxResults }`.
+Search and count requests require at least one filter; a pagination setting alone is not a filter.
 
 ### Live fetch
 
@@ -80,6 +153,66 @@ if (cached) {
 
 Live fetches are asynchronous. Save the job id before waiting so a restart does not create
 the same paid job again. The SDK does not validate Social URL domains.
+
+### Find email addresses and phone numbers
+
+```ts
+const emailJob = await client.contact.findEmail({
+  fullName: 'Jane Doe',
+  companyDomain: 'example.com',
+  emailType: 'professional'
+})
+const emails = await emailJob.wait()
+for (const email of emails.data.result ?? []) console.log(email.value, email.type)
+
+const phoneJob = await client.contact.findPhone({ url: 'https://social.com/in/janedoe' })
+const phones = await phoneJob.wait()
+```
+
+Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
+cannot use the phone endpoint; a `GoneError` exposes the API's `alternative` when provided.
+
+#### Safe retries
+
+Both contact finders send a fresh UUID v4 as `Idempotency-Key` for each call and reuse it
+across all automatic retries. The API keeps a successful acknowledgement for 24 hours,
+scoped to the workspace and endpoint. Reusing a key with the same body returns that
+acknowledgement without starting or charging for another job.
+
+Persist your own key with the request body to survive a process restart:
+
+```ts
+const retryableJob = await client.contact.findEmail({
+  fullName: 'Jane Doe',
+  companyDomain: 'example.com'
+}, { idempotencyKey: 'email-request-2026-10-29-001' })
+console.log(retryableJob.replayed)
+```
+
+An explicit `Idempotency-Key` request header is also accepted; the `idempotencyKey` option
+has priority. Keys must contain 1 to 255 printable ASCII characters, without spaces. Invalid caller keys raise `ReverseContactError` before any request.
+
+- Contact submits retry timeouts, interrupted response bodies and ambiguous connection
+  failures with the same key.
+- HTTP 409 `IDEMPOTENCY_KEY_IN_USE` waits for `Retry-After` within `maxRetries`.
+- HTTP 422 `IDEMPOTENCY_KEY_REUSED` and 400 `INVALID_IDEMPOTENCY_KEY` are never retried.
+- `job.replayed` is true when the acknowledgement has `Idempotent-Replayed: true`;
+  the original header remains available in `job.response.headers`.
+- A terminal job failure does not create a new job automatically.
+- After 24 hours, reusing a key can start and charge for a new job; resume a known job id
+  with `client.jobs.wait`.
+
+### Credit balance and rate limits
+
+```ts
+const usage = await client.usage.retrieve()
+console.log(usage.quotas?.workspace.credits.left)
+console.log(usage.quotas?.workspace.minuteRateLimit?.left)
+```
+
+Usage has `data: null`; balance and limit information lives in `quotas`.
+Quota values can be `null` when no snapshot is available, and `quotas.key` can be null.
+`null`, `0`, and an empty array retain their distinct meanings.
 
 ## Configuration
 
@@ -119,6 +252,8 @@ Debug output excludes API keys, request headers, query parameters, and request b
 Use `logLevel: 'off'` to disable it even when `RC_LOG=debug`.
 The reserved `X-Request-Origin` header is removed after merging client and request headers.
 
+### Request options
+
 Every operation accepts request options as its last argument: `timeout`, `maxRetries`,
 `headers`, and `signal`. Path ids precede the body or query object. For methods without
 a body or query, options follow the path ids directly:
@@ -135,99 +270,6 @@ await client.usage.retrieve({ signal: controller.signal })
 
 The User-Agent identifies the SDK version and runtime, with optional integration name/version.
 `VERSION` is available as a named export.
-
-## Resources
-
-### Enrichment and cached fetch
-
-```ts
-const company = await client.enrich.company({ domain: 'example.com' })
-const saved = await client.fetch.company({ url: 'https://social.com/company/acme' })
-const personExists = await client.fetch.checkPerson({ url: 'https://social.com/in/janedoe' })
-const companyExists = await client.fetch.checkCompany({ url: 'https://social.com/company/acme' })
-const liveCompany = await client.fetch.companyLive({ url: 'https://social.com/company/acme' })
-```
-
-The checks are free but the API can still require a sufficient workspace balance.
-Fetch returns the profile directly in `result.data`. Enrichment nests it in
-`result.data.person` or `result.data.company`.
-
-### Search
-
-```ts
-const fields = await client.search.peopleFields()
-const organizationFields = await client.search.organizationsFields()
-const page = await client.search.people({ firstName: 'Jane', perPage: 10 })
-const prompt = await client.search.peopleByPrompt({ prompt: 'Software founders in Paris', perPage: 10 })
-console.log(prompt.interpretation)
-const similar = await client.search.peopleLookalike({ url: 'https://social.com/in/janedoe', perPage: 10 })
-const organizations = await client.search.organizations({ companyName: 'Acme', perPage: 10 })
-const byPrompt = await client.search.organizationsByPrompt({ prompt: 'Software companies in France', perPage: 10 })
-const organizationCount = await client.search.countOrganizations({ companyName: 'Acme' })
-```
-
-Iterators: `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`,
-`iterOrganizations`, and `iterOrganizationsByPrompt`. All accept the same search filters
-as their page method, an optional `perPage` (default 25), and required `{ maxResults }`.
-Search and count requests require at least one filter; a pagination setting alone is not a filter.
-
-### Contacts
-
-```ts
-const emailJob = await client.contact.findEmail({
-  fullName: 'Jane Doe',
-  companyDomain: 'example.com',
-  emailType: 'professional'
-})
-const emails = await emailJob.wait()
-for (const email of emails.data.result ?? []) console.log(email.value, email.type)
-
-const phoneJob = await client.contact.findPhone({ url: 'https://social.com/in/janedoe' })
-const phones = await phoneJob.wait()
-```
-
-Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
-cannot use the phone endpoint; a `GoneError` exposes the API's `alternative` when provided.
-
-#### Safe retries
-
-Both contact finders send a fresh UUID v4 as `Idempotency-Key` for each call and reuse it
-across all automatic retries. The API keeps a successful acknowledgement for 24 hours,
-scoped to the workspace and endpoint. Reusing a key with the same body returns that
-acknowledgement without starting or charging for another job.
-
-Persist your own key with the request body to survive a process restart:
-
-```ts
-const retryableJob = await client.contact.findEmail({
-  fullName: 'Jane Doe',
-  companyDomain: 'example.com'
-}, { idempotencyKey: 'email-request-2026-10-29-001' })
-console.log(retryableJob.replayed)
-```
-
-An explicit `Idempotency-Key` request header is also accepted; the `idempotencyKey` option
-has priority. Keys must contain 1 to 255 printable ASCII characters without leading or
-trailing whitespace. Invalid caller keys raise `ReverseContactError` before any request.
-Contact submits retry timeouts, interrupted response bodies and ambiguous connection
-failures with the same key. HTTP 409 `IDEMPOTENCY_KEY_IN_USE` waits for `Retry-After` within
-`maxRetries`. HTTP 422 `IDEMPOTENCY_KEY_REUSED` and 400 `INVALID_IDEMPOTENCY_KEY` are never
-retried. `job.replayed` is true when the acknowledgement has `Idempotent-Replayed: true`;
-the original header remains available in `job.response.headers`. A terminal job failure
-does not create a new job automatically. After 24 hours, reusing a key can start and charge
-for a new job; resume a known job id with `client.jobs.wait`.
-
-### Usage
-
-```ts
-const usage = await client.usage.retrieve()
-console.log(usage.quotas?.workspace.credits.left)
-console.log(usage.quotas?.workspace.minuteRateLimit?.left)
-```
-
-Usage has `data: null`; balance and limit information lives in `quotas`.
-Quota values can be `null` when no snapshot is available, and `quotas.key` can be null.
-`null`, `0`, and an empty array retain their distinct meanings.
 
 ## Pagination
 
@@ -369,10 +411,11 @@ a string or null; `isError` is true only for a non-empty string.
 A generic type parameter can describe your endpoint's result; it does not
 perform deep profile validation. Use HTTPS, correlate with your stored job id,
 deduplicate on `webhookId`, answer 2xx within 10 seconds, and process asynchronously.
+See the [webhooks guide](https://docs.reversecontact.com/guides/webhooks).
 
 ## Types
 
-Types are generated from the checked-in OpenAPI snapshot. Public aliases include
+Types are generated from the Reverse Contact OpenAPI description. Public aliases include
 `Person`, `Company`, `EnrichPersonParams`, `SearchPeopleParams`, `SearchOrganizationsParams`,
 `JobStatus`, `JobSnapshot<T>`, `Usage`, `Quotas`, and `Metadata`.
 Use `Body<'operationId'>`, `Query<'operationId'>`, `Data<'operationId'>`, or the exported
@@ -390,15 +433,49 @@ keeps unknown fields and does not replace nulls or empty values.
 - Log request ids and job ids; monitor balance, repeated quota errors, and server errors.
 - Prefer the default 90-second HTTP timeout: legitimate enrichment requests can exceed 60 seconds.
 
-See [authentication](https://docs.reversecontact.com/docs/authentication),
-[errors and retries](https://docs.reversecontact.com/docs/guides/errors-retries),
-[polling](https://docs.reversecontact.com/docs/guides/polling),
-[credits](https://docs.reversecontact.com/docs/guides/credits), and the
-[production checklist](https://docs.reversecontact.com/docs/guides/production-checklist).
+See [authentication](https://docs.reversecontact.com/authentication),
+[errors and retries](https://docs.reversecontact.com/guides/errors-retries),
+[polling](https://docs.reversecontact.com/guides/polling),
+[credits](https://docs.reversecontact.com/guides/credits), and the
+[production checklist](https://docs.reversecontact.com/guides/production-checklist).
 
-## Development
+## Requirements
 
-From this directory:
+- Node.js 22 or later, Bun, Deno, or an edge runtime with the standard Fetch APIs,
+  `AbortController`, and Web Crypto (`crypto.randomUUID`).
+- ESM and CommonJS are both supported, with TypeScript declarations:
+  `import ReverseContact from '@reverse-contact/sdk'` or
+  `const { ReverseContact } = require('@reverse-contact/sdk')`.
+- No runtime dependencies.
+
+A Node.js release line stays supported until its end of life; the next minor release of the
+SDK then raises the minimum version.
+
+## Versioning
+
+The SDK follows [semantic versioning](https://semver.org). While the version is 0.x, a minor
+release (for example 0.1 to 0.2) can change the API; patch releases do not. npm's default caret
+range (`^0.1.1`) already stays within 0.1.x: keep it, or pin an exact version, and read the
+[changelog](https://github.com/visum-run/reversecontact-node/blob/main/CHANGELOG.md) before
+moving to a new minor version.
+
+## Support
+
+- SDK bugs and feature requests: [open an issue](https://github.com/visum-run/reversecontact-node/issues).
+- Questions about your account, credits, or API results: email
+  [support@reversecontact.com](mailto:support@reversecontact.com).
+
+Include the request id (`metadata.requestId`, or `requestId` on an error) and any job id.
+
+## Contributing
+
+Issues and pull requests are welcome. This repository is published from Reverse Contact's main
+codebase with each release: an accepted pull request is applied there first, then reaches this
+repository and npm with the next release.
+
+### Development
+
+From the repository root:
 
 ```sh
 bun install --frozen-lockfile
@@ -413,26 +490,21 @@ node scripts/smoke-dist.mjs
 ```
 
 The build toolchain uses Node.js 24 and Bun 1.3.14. Runtime CI covers Node.js 22, 24, and 26.
-Generated types are committed. Generation and snapshot-dependent tests run in the monorepo;
-they skip with an explicit reason when its OpenAPI snapshot or operation manifest is absent.
-The public repository CI runs all other checks without regenerating types.
-
-See [CHANGELOG.md](./CHANGELOG.md) for version history.
+Types are generated from the API's OpenAPI description and committed. The generator and the
+tests that compare the SDK with that description need input files this repository does not
+include: they skip with an explicit reason, and every other check runs here.
 
 Tests use mocked Fetch transports. The live smoke is skipped by default. To opt in
 against your configured environment, set `RC_SDK_LIVE=1`, `RC_API_KEY`, and optionally
 `RC_BASE_URL`, then run `bun run test -- tests/live.test.ts`. It calls only usage,
 people fields, people count, organization count, and person check, and asserts zero credits.
 
-Run the examples from the checkout with `bun examples/enrich-person.ts`,
-`bun examples/search-people.ts`, `bun examples/live-fetch.ts`, or `bun examples/find-email.ts`.
+The [examples](https://github.com/visum-run/reversecontact-node/tree/main/examples) run from
+a checkout: `bun examples/enrich-person.ts`, `bun examples/search-people.ts`,
+`bun examples/live-fetch.ts`, or `bun examples/find-email.ts`.
 They read `RC_API_KEY` and may consume credits. URLs and email addresses are illustrative;
 replace them with your intended inputs.
 
-## Contributing
+## License
 
-This repository is published from the Reverse Contact monorepo.
-[Issues](https://github.com/visum-run/reversecontact-node/issues) are welcome here.
-Pull requests are reviewed here and merged upstream in the monorepo.
-
-Apache-2.0 license. See [LICENSE](./LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/visum-run/reversecontact-node/blob/main/LICENSE).

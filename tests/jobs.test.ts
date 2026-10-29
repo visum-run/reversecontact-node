@@ -63,6 +63,7 @@ describe('Job handles and waiting', () => {
     'person-not-found',
     'company-not-found',
     'email-not-found',
+    'phone-not-found',
     'fetch-data-error'
   ])('raises JobFailedError for %s without recreating a job', async errorCode => {
     const payload = { partial: true }

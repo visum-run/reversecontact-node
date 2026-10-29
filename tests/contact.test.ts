@@ -75,6 +75,7 @@ describe.each(['findEmail', 'findPhone'] as const)('%s idempotency', method => {
     ' ',
     ' leading',
     'trailing ',
+    'inner space',
     '\tkey',
     'key\n',
     'a\x00b',
@@ -105,7 +106,7 @@ describe.each(['findEmail', 'findPhone'] as const)('%s idempotency', method => {
     expect(calls).toHaveLength(0)
   })
 
-  it.each(['!', 'a b', 'x'.repeat(255)])('accepts valid boundary keys: %j', async key => {
+  it.each(['!', '~', 'x'.repeat(255)])('accepts valid boundary keys: %j', async key => {
     const { client, calls } = mockClient([ack()])
     await client.contact[method](params, { idempotencyKey: key })
     expect(keyOf(calls[0])).toBe(key)

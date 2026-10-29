@@ -1,15 +1,10 @@
 import { ReverseContactError } from './errors'
 
 export function validateIdempotencyKey(value: unknown): asserts value is string {
-  if (
-    typeof value !== 'string' ||
-    value.length < 1 ||
-    value.length > 255 ||
-    !/^[\x20-\x7e]+$/.test(value) ||
-    value.trim() !== value
-  ) {
+  // Same rule as the API: 1 to 255 printable ASCII characters, spaces excluded.
+  if (typeof value !== 'string' || !/^[\x21-\x7e]{1,255}$/.test(value)) {
     throw new ReverseContactError(
-      'idempotencyKey must contain 1 to 255 printable ASCII characters with no surrounding whitespace'
+      'idempotencyKey must contain 1 to 255 printable ASCII characters, without spaces'
     )
   }
 }

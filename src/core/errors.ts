@@ -120,7 +120,8 @@ export class JobFailedError extends ReverseContactError {
       'data-not-found',
       'person-not-found',
       'company-not-found',
-      'email-not-found'
+      'email-not-found',
+      'phone-not-found'
     ].includes(errorCode ?? '')
   }
 }
