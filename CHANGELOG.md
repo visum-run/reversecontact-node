@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 (2026-10-29)
+
+- `contact.findEmail` and `contact.findPhone` accept `id`, a person id (`prs_…`) from a search, fetch or enrich result, in place of `url` or a name with company domain.
+
 ## 0.1.4 (2026-10-29)
 
 - Types generated from the updated API description, which now documents counts, page sizes and other whole-number fields as integers. The TypeScript types are unchanged (`number`); only the generated documentation comments differ.

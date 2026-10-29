@@ -38,6 +38,16 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe.each(['findEmail', 'findPhone'] as const)('%s with a person id', method => {
+  it('sends the id as the person to look up', async () => {
+    const { client, calls } = mockClient([ack()])
+    await client.contact[method]({ id: 'prs_01jbd5vewyenebxgaz869ffe5t' })
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({
+      id: 'prs_01jbd5vewyenebxgaz869ffe5t'
+    })
+  })
+})
+
 describe.each(['findEmail', 'findPhone'] as const)('%s idempotency', method => {
   it('generates a UUID v4 once per call and reuses it on every attempt', async () => {
     const { client, calls } = mockClient([failure(503), ack(), ack()])

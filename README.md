@@ -171,9 +171,14 @@ for (const email of emails.data.result ?? []) console.log(email.value, email.typ
 
 const phoneJob = await client.contact.findPhone({ url: 'https://social.com/in/janedoe' })
 const phones = await phoneJob.wait()
+
+// A person id from a search, fetch or enrich result replaces the URL.
+const idJob = await client.contact.findEmail({ id: 'prs_01jbd5vewyenebxgaz869ffe5t' })
 ```
 
-Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
+Each finder takes one person: `url`, `id` (a `prs_…` person id), or a name with
+`companyDomain`. An id that matches no person is refused with an `UnprocessableEntityError`
+before any job starts. Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
 cannot use the phone endpoint; a `GoneError` exposes the API's `alternative` when provided.
 
 #### Safe retries

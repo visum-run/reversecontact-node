@@ -355,7 +355,7 @@ export interface paths {
         put?: never;
         /**
          * Find contact email
-         * @description Asynchronously finds email addresses from a Social profile URL or a person name with company domain. emailType chooses professional (default), personal, or either. The request is acknowledged with data.webhookId and data.pollUrl. Poll GET /v2/webhooks/{webhookId} for the email array in data.result, or receive it on the optional webhookUrl callback. Credits: billed on the emails found, not on emailType: 3 for a professional email, 5 for a personal one, so an any lookup costs 3, 5 or 8 (8 only when it finds both); 0 when no email is found. The request debits 3 (5 for personal and any) and the result settles the difference.
+         * @description Asynchronously finds email addresses from a Social profile URL, a Reverse Contact person id (prs_...), or a person name with company domain. emailType chooses professional (default), personal, or either. The request is acknowledged with data.webhookId and data.pollUrl. Poll GET /v2/webhooks/{webhookId} for the email array in data.result, or receive it on the optional webhookUrl callback. Credits: billed on the emails found, not on emailType: 3 for a professional email, 5 for a personal one, so an any lookup costs 3, 5 or 8 (8 only when it finds both); 0 when no email is found. The request debits 3 (5 for personal and any) and the result settles the difference.
          */
         post: operations["findContactEmail"];
         delete?: never;
@@ -375,7 +375,7 @@ export interface paths {
         put?: never;
         /**
          * Find contact phone
-         * @description Asynchronously finds phone numbers from a Social profile URL or a person name with company domain. The request is acknowledged with data.webhookId and data.pollUrl. Poll GET /v2/webhooks/{webhookId} for the phone array in data.result, or receive it on the optional webhookUrl callback. Credits: 20 when a phone number is found, 0 when no phone number is found. Enabled by default; the endpoint returns 410 for a workspace without phone finding access.
+         * @description Asynchronously finds phone numbers from a Social profile URL, a Reverse Contact person id (prs_...), or a person name with company domain. The request is acknowledged with data.webhookId and data.pollUrl. Poll GET /v2/webhooks/{webhookId} for the phone array in data.result, or receive it on the optional webhookUrl callback. Credits: 20 when a phone number is found, 0 when no phone number is found. Enabled by default; the endpoint returns 410 for a workspace without phone finding access.
          */
         post: operations["findContactPhone"];
         delete?: never;
@@ -1012,7 +1012,7 @@ export interface components {
              */
             fullProfile?: boolean;
         };
-        /** @description Provide exactly one of: url; fullName + companyDomain; or firstName + lastName + companyDomain. */
+        /** @description Provide exactly one of: url; id; fullName + companyDomain; or firstName + lastName + companyDomain. */
         ContactEmailBody: {
             /**
              * Format: uri
@@ -1020,6 +1020,11 @@ export interface components {
              * @example https://social.com/in/janedoe
              */
             url?: string;
+            /**
+             * @description Reverse Contact person id (prs_...), as returned in the id field of any person response. Alternative to url.
+             * @example prs_01jbd5vewyenebxgaz869ffe5t
+             */
+            id?: string;
             /**
              * @description Person full name
              * @example Jane Doe
@@ -1051,8 +1056,8 @@ export interface components {
              * @description Optional HTTPS URL for the result callback
              */
             webhookUrl?: string;
-        } & (unknown | unknown | unknown);
-        /** @description Provide exactly one of: url; fullName + companyDomain; or firstName + lastName + companyDomain. */
+        } & (unknown | unknown | unknown | unknown);
+        /** @description Provide exactly one of: url; id; fullName + companyDomain; or firstName + lastName + companyDomain. */
         ContactPhoneBody: {
             /**
              * Format: uri
@@ -1060,6 +1065,11 @@ export interface components {
              * @example https://social.com/in/janedoe
              */
             url?: string;
+            /**
+             * @description Reverse Contact person id (prs_...), as returned in the id field of any person response. Alternative to url.
+             * @example prs_01jbd5vewyenebxgaz869ffe5t
+             */
+            id?: string;
             /**
              * @description Person full name
              * @example Jane Doe
@@ -1085,7 +1095,7 @@ export interface components {
              * @description Optional HTTPS URL for the result callback
              */
             webhookUrl?: string;
-        } & (unknown | unknown | unknown);
+        } & (unknown | unknown | unknown | unknown);
         SearchPeopleFilters: {
             /** @description Filter by first name */
             firstName?: string;
