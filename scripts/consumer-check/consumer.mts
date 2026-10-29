@@ -6,7 +6,11 @@ import ReverseContact, {
 } from '@reverse-contact/sdk'
 
 const fetcher: Fetch = fetch
-const client = new ReverseContact({ apiKey: 'test', fetch: fetcher, defaultHeaders: new Headers() })
+const client = new ReverseContact({
+  apiKey: process.env.RC_API_KEY,
+  fetch: fetcher,
+  defaultHeaders: new Headers()
+})
 const copy: ReverseContact = client.withOptions({ logLevel: 'off' })
 const result: Result<JobSnapshot<Person>> = await copy.jobs.wait<Person>('id', {
   headers: { 'X-Test': 'yes' },

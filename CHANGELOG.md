@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 (2026-10-29)
+
+- The README and the examples pass the API key explicitly: `new ReverseContact({ apiKey: process.env.RC_API_KEY })`. Without `apiKey`, the client still reads `RC_API_KEY`.
+- `apiKey` accepts `undefined`, so `apiKey: process.env.RC_API_KEY` also compiles with `exactOptionalPropertyTypes`.
+
 ## 0.1.2 (2026-10-29)
 
 - README rewritten for GitHub and npm: links to the documentation, a quickstart that runs as pasted, a table of every resource and method, requirements, versioning and support.

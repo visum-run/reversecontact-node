@@ -1,6 +1,6 @@
 import ReverseContact from '../src'
 
-const client = new ReverseContact()
+const client = new ReverseContact({ apiKey: process.env.RC_API_KEY })
 const result = await client.enrich.person({ email: 'jane@example.com' })
 if (result === null) {
   console.log('No confident match. This lookup did not consume credits.')

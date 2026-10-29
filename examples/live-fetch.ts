@@ -1,6 +1,6 @@
 import ReverseContact from '../src'
 
-const client = new ReverseContact()
+const client = new ReverseContact({ apiKey: process.env.RC_API_KEY })
 const params = { url: 'https://social.com/in/janedoe' }
 const cached = await client.fetch.person(params)
 if (cached) {

@@ -38,7 +38,7 @@ and run `bun quickstart.ts`:
 ```ts
 import ReverseContact from '@reverse-contact/sdk'
 
-const client = new ReverseContact() // reads RC_API_KEY
+const client = new ReverseContact({ apiKey: process.env.RC_API_KEY })
 
 const match = await client.enrich.person({ email: 'jane@example.com' })
 if (match === null) {
@@ -53,7 +53,11 @@ if (match === null) {
 
 A lookup without a match returns `null` and costs nothing.
 
-Store `RC_API_KEY` in your server environment. Never put it in browser code.
+Pass your key as `apiKey`, from any server-side source: an environment variable as above, a
+secret manager, or one client per key when you serve several workspaces. When `apiKey` is
+omitted, the client reads `RC_API_KEY`.
+
+Keep the key in your server environment. Never put it in browser code.
 Construction in a browser throws unless you explicitly set `dangerouslyAllowBrowser: true`.
 This opt-out exposes your key to the browser user; use a backend for customer applications.
 

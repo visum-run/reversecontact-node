@@ -34,7 +34,8 @@ export interface IdempotentRequestOptions extends RequestOptions {
   idempotencyKey?: string
 }
 export interface ClientOptions extends Pick<RequestOptions, 'timeout' | 'maxRetries'> {
-  apiKey?: string
+  // `| undefined` lets `apiKey: process.env.RC_API_KEY` compile under exactOptionalPropertyTypes.
+  apiKey?: string | undefined
   baseUrl?: string
   defaultHeaders?: RequestInit['headers']
   fetch?: Fetch
