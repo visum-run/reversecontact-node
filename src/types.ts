@@ -1,10 +1,24 @@
+import type { CatalogValue } from './generated/catalogs'
 import type { components, operations } from './generated/openapi'
 
 export type { components, operations, paths } from './generated/openapi'
+
+/**
+ * A field bound to a published list (Industry, Area...) also accepts any
+ * string: the constants offer the listed values, and a value the API learns
+ * after this release still type-checks. The API validates it either way.
+ */
+type Open<T> = T extends CatalogValue
+  ? T | (string & Record<never, never>)
+  : T extends readonly (infer U)[]
+    ? Open<U>[]
+    : T extends object
+      ? { [K in keyof T]: Open<T[K]> }
+      : T
 export type Body<K extends keyof operations> = operations[K] extends {
   requestBody: { content: { 'application/json': infer B } }
 }
-  ? B
+  ? Open<B>
   : never
 export type Query<K extends keyof operations> = NonNullable<operations[K]['parameters']['query']>
 type Success<R> = R[Extract<keyof R, 200 | 201 | 202>]

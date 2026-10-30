@@ -1,5 +1,7 @@
 import ReverseContact, {
+  Area,
   type Fetch,
+  Industry,
   type JobSnapshot,
   type Person,
   type Result
@@ -20,6 +22,11 @@ const result: Result<JobSnapshot<Person>> = await copy.jobs.wait<Person>('id', {
   }
 })
 const page = await copy.search.people({ firstName: 'Jane' })
+const area: Area = Area.MC_DACH
+void (await copy.search.countOrganizations({
+  industry: [Industry.SOFTWARE_DEVELOPMENT, 'A value added after this release'],
+  location: { area: [area, 'MR:EMEA'] }
+}))
 const extras: Record<string, unknown> = page.extras
 const job = await copy.contact.findEmail(
   { url: 'https://social.com/in/jane' },

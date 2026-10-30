@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 (2026-10-30)
+
+- `search.people`, `search.organizations`, `search.countPeople` and `search.countOrganizations` accept `location.area`, one zone id or a list (`'MR:EMEA'`, `['MC:DACH', 'IG:EU']`): main regions, UN regions and subregions, market clusters and institutional groups.
+- `search.people`, `search.countPeople` and their iterator accept `connectionsCount`, a connection count range where one bound is enough (`{ min: 501 }`).
+- The closed lists of the API are exported as constants, each with the type of its values: `Industry`, `CountryCode`, `JobFunction`, `JobSubFunction`, `Seniority`, `ContractType`, `Area` and `EmailType` (`Industry.SOFTWARE_DEVELOPMENT`, `Area.MC_DACH`). The parameters bound to a list offer its values and still accept any string.
+
 ## 0.1.5 (2026-10-29)
 
 - `contact.findEmail` and `contact.findPhone` accept `id`, a person id (`prs_…`) from a search, fetch or enrich result, in place of `url` or a name with company domain.

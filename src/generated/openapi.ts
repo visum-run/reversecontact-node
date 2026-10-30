@@ -428,6 +428,46 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Industry from the published taxonomy (see docs.reversecontact.com/guides/industries)
+         * @enum {string}
+         */
+        Industry: "Abrasives and Nonmetallic Minerals Manufacturing" | "Accessible Architecture and Design" | "Accessible Hardware Manufacturing" | "Accommodation and Food Services" | "Accounting" | "Administration of Justice" | "Administrative and Support Services" | "Advertising Services" | "Agricultural Chemical Manufacturing" | "Agriculture, Construction, Mining Machinery Manufacturing" | "Airlines and Aviation" | "Air, Water, and Waste Program Management" | "Alternative Dispute Resolution" | "Alternative Fuel Vehicle Manufacturing" | "Alternative Medicine" | "Ambulance Services" | "Amusement Parks and Arcades" | "Animal Feed Manufacturing" | "Animation" | "Animation and Post-production" | "Apparel & Fashion" | "Apparel Manufacturing" | "Appliances, Electrical, and Electronics Manufacturing" | "Architectural and Structural Metal Manufacturing" | "Architecture and Planning" | "Armed Forces" | "Artificial Rubber and Synthetic Fiber Manufacturing" | "Artists and Writers" | "Arts & Crafts" | "Audio and Video Equipment Manufacturing" | "Automation Machinery Manufacturing" | "Automotive" | "Aviation & Aerospace" | "Aviation and Aerospace Component Manufacturing" | "Baked Goods Manufacturing" | "Banking" | "Bars, Taverns, and Nightclubs" | "Bed-and-Breakfasts, Hostels, Homestays" | "Beverage Manufacturing" | "Biomass Electric Power Generation" | "Biotechnology" | "Biotechnology Research" | "Blockchain Services" | "Blogs" | "Boilers, Tanks, and Shipping Container Manufacturing" | "Book and Periodical Publishing" | "Book Publishing" | "Breweries" | "Broadcast Media Production and Distribution" | "Building Construction" | "Building Equipment Contractors" | "Building Finishing Contractors" | "Building Materials" | "Building Structure and Exterior Contractors" | "Business Consulting and Services" | "Business Content" | "Business Intelligence Platforms" | "Business Supplies & Equipment" | "Cable and Satellite Programming" | "Capital Markets" | "Caterers" | "Chemical Manufacturing" | "Chemical Raw Materials Manufacturing" | "Child Day Care Services" | "Chiropractors" | "Circuses and Magic Shows" | "Civic and Social Organizations" | "Civil Engineering" | "Claims Adjusting, Actuarial Services" | "Clay and Refractory Products Manufacturing" | "Climate Data and Analytics" | "Climate Technology Product Manufacturing" | "Coal Mining" | "Collection Agencies" | "Commercial and Industrial Equipment Rental" | "Commercial and Industrial Machinery Maintenance" | "Commercial and Service Industry Machinery Manufacturing" | "Commercial Real Estate" | "Communications Equipment Manufacturing" | "Community Development and Urban Planning" | "Community Services" | "Computer and Network Security" | "Computer Games" | "Computer Hardware" | "Computer Hardware Manufacturing" | "Computer Networking" | "Computer Networking Products" | "Computers and Electronics Manufacturing" | "Conservation Programs" | "Construction" | "Construction Hardware Manufacturing" | "Consumer Electronics" | "Consumer Goods" | "Consumer Goods Rental" | "Consumer Services" | "Correctional Institutions" | "Cosmetics" | "Cosmetology and Barber Schools" | "Courts of Law" | "Credit Intermediation" | "Cutlery and Handtool Manufacturing" | "Dairy" | "Dairy Product Manufacturing" | "Dance Companies" | "Data Infrastructure and Analytics" | "Data Security Software Products" | "Death Care Services" | "Defense and Space Manufacturing" | "Defense & Space" | "Dentists" | "Design" | "Design Services" | "Desktop Computing Software Products" | "Digital Accessibility Services" | "Distilleries" | "Economic Programs" | "Education" | "Education Administration Programs" | "Education Management" | "E-learning" | "E-Learning Providers" | "Electrical Equipment Manufacturing" | "Electric Lighting Equipment Manufacturing" | "Electric Power Generation" | "Electric Power Transmission, Control, and Distribution" | "Electronic and Precision Equipment Maintenance" | "Embedded Software Products" | "Emergency and Relief Services" | "Energy Technology" | "Engineering Services" | "Engines and Power Transmission Equipment Manufacturing" | "Entertainment" | "Entertainment Providers" | "Environmental Quality Programs" | "Environmental Services" | "Equipment Rental Services" | "Events Services" | "Executive Offices" | "Executive Search Services" | "Fabricated Metal Products" | "Facilities Services" | "Family Planning Centers" | "Farming" | "Farming, Ranching, Forestry" | "Fashion Accessories Manufacturing" | "Financial Services" | "Fine Art" | "Fine Arts Schools" | "Fire Protection" | "Fisheries" | "Flight Training" | "Food and Beverage Manufacturing" | "Food and Beverage Retail" | "Food and Beverage Services" | "Food & Beverages" | "Food Production" | "Footwear and Leather Goods Repair" | "Footwear Manufacturing" | "Forestry and Logging" | "Fossil Fuel Electric Power Generation" | "Freight and Package Transportation" | "Fruit and Vegetable Preserves Manufacturing" | "Fuel Cell Manufacturing" | "Fundraising" | "Funds and Trusts" | "Funeral Services" | "Furniture" | "Furniture and Home Furnishings Manufacturing" | "Gambling Facilities and Casinos" | "Geothermal Electric Power Generation" | "Glass, Ceramics and Concrete Manufacturing" | "Glass Product Manufacturing" | "Golf Courses and Country Clubs" | "Government Administration" | "Government Relations" | "Government Relations Services" | "Graphic Design" | "Ground Passenger Transportation" | "Health and Human Services" | "Health Wellness & Fitness" | "Higher Education" | "Highway, Street, and Bridge Construction" | "Historical Sites" | "Holding Companies" | "Home Health Care Services" | "Horticulture" | "Hospitality" | "Hospitals" | "Hospitals and Health Care" | "Hotels and Motels" | "Household and Institutional Furniture Manufacturing" | "Household Appliance Manufacturing" | "Household Services" | "Housing and Community Development" | "Housing Programs" | "Human Resources" | "Human Resources Services" | "HVAC and Refrigeration Equipment Manufacturing" | "Hydroelectric Power Generation" | "Import & Export" | "Individual and Family Services" | "Industrial Automation" | "Industrial Machinery Manufacturing" | "Industry Associations" | "Information Services" | "Information Technology & Services" | "Insurance" | "Insurance Agencies and Brokerages" | "Insurance and Employee Benefit Funds" | "Insurance Carriers" | "Interior Design" | "International Affairs" | "International Trade and Development" | "Internet Marketplace Platforms" | "Internet News" | "Internet Publishing" | "Interurban and Rural Bus Services" | "Investment Advice" | "Investment Banking" | "Investment Management" | "IT Services and IT Consulting" | "IT System Custom Software Development" | "IT System Data Services" | "IT System Design Services" | "IT System Installation and Disposal" | "IT System Operations and Maintenance" | "IT System Testing and Evaluation" | "IT System Training and Support" | "Janitorial Services" | "Landscaping Services" | "Language Schools" | "Laundry and Drycleaning Services" | "Law Enforcement" | "Law Practice" | "Leasing Non-residential Real Estate" | "Leasing Residential Real Estate" | "Leather Product Manufacturing" | "Legal Services" | "Legislative Offices" | "Leisure, Travel & Tourism" | "Libraries" | "Lime and Gypsum Products Manufacturing" | "Loan Brokers" | "Luxury Goods & Jewelry" | "Machinery Manufacturing" | "Magnetic and Optical Media Manufacturing" | "Manufacturing" | "Maritime" | "Maritime Transportation" | "Marketing Services" | "Market Research" | "Mattress and Blinds Manufacturing" | "Measuring and Control Instrument Manufacturing" | "Meat Products Manufacturing" | "Mechanical Or Industrial Engineering" | "Media and Telecommunications" | "Media Production" | "Medical and Diagnostic Laboratories" | "Medical Device" | "Medical Equipment Manufacturing" | "Medical Practices" | "Mental Health Care" | "Metal Ore Mining" | "Metal Treatments" | "Metal Valve, Ball, and Roller Manufacturing" | "Metalworking Machinery Manufacturing" | "Military and International Affairs" | "Mining" | "Mobile Computing Software Products" | "Mobile Food Services" | "Mobile Gaming Apps" | "Motor Vehicle Manufacturing" | "Motor Vehicle Parts Manufacturing" | "Movies and Sound Recording" | "Movies, Videos and Sound" | "Museums" | "Museums, Historical Sites, and Zoos" | "Music" | "Musicians" | "Nanotechnology Research" | "Natural Gas Distribution" | "Natural Gas Extraction" | "Newspaper Publishing" | "Nonmetallic Mineral Mining" | "Non-profit Organization Management" | "Non-profit Organizations" | "Nonresidential Building Construction" | "Nuclear Electric Power Generation" | "Nursing Homes and Residential Care Facilities" | "Office Administration" | "Office Furniture and Fixtures Manufacturing" | "Oil and Coal Product Manufacturing" | "Oil and Gas" | "Oil Extraction" | "Oil, Gas, and Mining" | "Online and Mail Order Retail" | "Online Audio and Video Media" | "Online Media" | "Operations Consulting" | "Optometrists" | "Outpatient Care Centers" | "Outsourcing and Offshoring Consulting" | "Outsourcing/Offshoring" | "Packaging and Containers Manufacturing" | "Packaging & Containers" | "Paint, Coating, and Adhesive Manufacturing" | "Paper and Forest Product Manufacturing" | "Paper & Forest Products" | "Pension Funds" | "Performing Arts" | "Performing Arts and Spectator Sports" | "Periodical Publishing" | "Personal and Laundry Services" | "Personal Care Product Manufacturing" | "Personal Care Services" | "Pet Services" | "Pharmaceutical Manufacturing" | "Philanthropic Fundraising Services" | "Philanthropy" | "Photography" | "Physical, Occupational and Speech Therapists" | "Physicians" | "Pipeline Transportation" | "Plastics and Rubber Product Manufacturing" | "Plastics Manufacturing" | "Political Organizations" | "Postal Services" | "Primary and Secondary Education" | "Primary Metal Manufacturing" | "Printing Services" | "Professional Organizations" | "Professional Services" | "Professional Training and Coaching" | "Program Development" | "Public Assistance Programs" | "Public Health" | "Public Policy" | "Public Policy Offices" | "Public Relations and Communications Services" | "Public Safety" | "Racetracks" | "Radio and Television Broadcasting" | "Railroad Equipment Manufacturing" | "Rail Transportation" | "Ranching" | "Ranching and Fisheries" | "Real Estate" | "Real Estate Agents and Brokers" | "Real Estate and Equipment Rental Services" | "Recreational Facilities" | "Regenerative Design" | "Religious Institutions" | "Renewable Energy Equipment Manufacturing" | "Renewable Energy Power Generation" | "Renewable Energy Semiconductor Manufacturing" | "Renewables & Environment" | "Repair and Maintenance" | "Research" | "Research Services" | "Residential Building Construction" | "Restaurants" | "Retail" | "Retail Apparel and Fashion" | "Retail Appliances, Electrical, and Electronic Equipment" | "Retail Art Dealers" | "Retail Art Supplies" | "Retail Books and Printed News" | "Retail Building Materials and Garden Equipment" | "Retail Florists" | "Retail Furniture and Home Furnishings" | "Retail Gasoline" | "Retail Groceries" | "Retail Health and Personal Care Products" | "Retail Luxury Goods and Jewelry" | "Retail Motor Vehicles" | "Retail Musical Instruments" | "Retail Office Equipment" | "Retail Office Supplies and Gifts" | "Retail Pharmacies" | "Retail Recyclable Materials & Used Merchandise" | "Reupholstery and Furniture Repair" | "Robotics Engineering" | "Robot Manufacturing" | "Rubber Products Manufacturing" | "Satellite Telecommunications" | "Savings Institutions" | "School and Employee Bus Services" | "Seafood Product Manufacturing" | "Secretarial Schools" | "Securities and Commodity Exchanges" | "Security and Investigations" | "Security Guards and Patrol Services" | "Security Systems Services" | "Semiconductor Manufacturing" | "Semiconductors" | "Services for Renewable Energy" | "Services for the Elderly and Disabled" | "Sheet Music Publishing" | "Shipbuilding" | "Shuttles and Special Needs Transportation Services" | "Sightseeing Transportation" | "Skiing Facilities" | "Smart Meter Manufacturing" | "Soap and Cleaning Product Manufacturing" | "Social Networking Platforms" | "Software Development" | "Solar Electric Power Generation" | "Sound Recording" | "Space Research and Technology" | "Specialty Trade Contractors" | "Spectator Sports" | "Sporting Goods" | "Sporting Goods Manufacturing" | "Sports and Recreation Instruction" | "Sports Teams and Clubs" | "Spring and Wire Product Manufacturing" | "Staffing and Recruiting" | "Steam and Air-Conditioning Supply" | "Strategic Management Services" | "Subdivision of Land" | "Sugar and Confectionery Product Manufacturing" | "Surveying and Mapping Services" | "Taxi and Limousine Services" | "Technical and Vocational Training" | "Technology, Information and Internet" | "Technology, Information and Media" | "Telecommunications" | "Telecommunications Carriers" | "Telephone Call Centers" | "Temporary Help Services" | "Textile Manufacturing" | "Theater Companies" | "Think Tanks" | "Tobacco" | "Tobacco Manufacturing" | "Translation and Localization" | "Transportation Equipment Manufacturing" | "Transportation, Logistics, Supply Chain and Storage" | "Transportation Programs" | "Transportation/Trucking/Railroad" | "Travel Arrangements" | "Truck Transportation" | "Trusts and Estates" | "Turned Products and Fastener Manufacturing" | "Urban Transit Services" | "Utilities" | "Utilities Administration" | "Utility System Construction" | "Vehicle Repair and Maintenance" | "Venture Capital and Private Equity Principals" | "Veterinary" | "Veterinary Services" | "Vocational Rehabilitation Services" | "Warehousing" | "Warehousing and Storage" | "Waste Collection" | "Waste Treatment and Disposal" | "Water Supply and Irrigation Systems" | "Water, Waste, Steam, and Air Conditioning Services" | "Wellness and Fitness Services" | "Wholesale" | "Wholesale Alcoholic Beverages" | "Wholesale Apparel and Sewing Supplies" | "Wholesale Appliances, Electrical, and Electronics" | "Wholesale Building Materials" | "Wholesale Chemical and Allied Products" | "Wholesale Computer Equipment" | "Wholesale Drugs and Sundries" | "Wholesale Food and Beverage" | "Wholesale Footwear" | "Wholesale Furniture and Home Furnishings" | "Wholesale Hardware, Plumbing, Heating Equipment" | "Wholesale Import and Export" | "Wholesale Luxury Goods and Jewelry" | "Wholesale Machinery" | "Wholesale Metals and Minerals" | "Wholesale Motor Vehicles and Parts" | "Wholesale Paper Products" | "Wholesale Petroleum and Petroleum Products" | "Wholesale Photography Equipment and Supplies" | "Wholesale Raw Farm Products" | "Wholesale Recyclable Materials" | "Wind Electric Power Generation" | "Wineries" | "Wine & Spirits" | "Wireless Services" | "Women's Handbag Manufacturing" | "Wood Product Manufacturing" | "Writing and Editing" | "Zoos and Botanical Gardens";
+        /**
+         * @description ISO 3166-1 alpha-2 country code, plus XK for Kosovo
+         * @enum {string}
+         */
+        CountryCode: "AF" | "AL" | "DZ" | "AS" | "AD" | "AO" | "AI" | "AQ" | "AG" | "AR" | "AM" | "AW" | "AU" | "AT" | "AZ" | "BS" | "BH" | "BD" | "BB" | "BY" | "BE" | "BZ" | "BJ" | "BM" | "BT" | "BO" | "BQ" | "BA" | "BW" | "BV" | "BR" | "IO" | "BN" | "BG" | "BF" | "BI" | "CV" | "KH" | "CM" | "CA" | "KY" | "CF" | "TD" | "CL" | "CN" | "CX" | "CC" | "CO" | "KM" | "CG" | "CD" | "CK" | "CR" | "HR" | "CU" | "CW" | "CY" | "CZ" | "CI" | "DK" | "DJ" | "DM" | "DO" | "EC" | "EG" | "SV" | "GQ" | "ER" | "EE" | "SZ" | "ET" | "FK" | "FO" | "FJ" | "FI" | "FR" | "GF" | "PF" | "TF" | "GA" | "GM" | "GE" | "DE" | "GH" | "GI" | "GR" | "GL" | "GD" | "GP" | "GU" | "GT" | "GG" | "GN" | "GW" | "GY" | "HT" | "HM" | "VA" | "HN" | "HK" | "HU" | "IS" | "IN" | "ID" | "IR" | "IQ" | "IE" | "IM" | "IL" | "IT" | "JM" | "JP" | "JE" | "JO" | "KZ" | "KE" | "KI" | "KP" | "KR" | "XK" | "KW" | "KG" | "LA" | "LV" | "LB" | "LS" | "LR" | "LY" | "LI" | "LT" | "LU" | "MO" | "MG" | "MW" | "MY" | "MV" | "ML" | "MT" | "MH" | "MQ" | "MR" | "MU" | "YT" | "MX" | "FM" | "MD" | "MC" | "MN" | "ME" | "MS" | "MA" | "MZ" | "MM" | "NA" | "NR" | "NP" | "NL" | "NC" | "NZ" | "NI" | "NE" | "NG" | "NU" | "NF" | "MK" | "MP" | "NO" | "OM" | "PK" | "PW" | "PS" | "PA" | "PG" | "PY" | "PE" | "PH" | "PN" | "PL" | "PT" | "PR" | "QA" | "RO" | "RU" | "RW" | "RE" | "BL" | "SH" | "KN" | "LC" | "MF" | "PM" | "VC" | "WS" | "SM" | "ST" | "SA" | "SN" | "RS" | "SC" | "SL" | "SG" | "SX" | "SK" | "SI" | "SB" | "SO" | "ZA" | "GS" | "SS" | "ES" | "LK" | "SD" | "SR" | "SJ" | "SE" | "CH" | "SY" | "TW" | "TJ" | "TZ" | "TH" | "TL" | "TG" | "TK" | "TO" | "TT" | "TN" | "TM" | "TC" | "TV" | "TR" | "UG" | "UA" | "AE" | "GB" | "UM" | "US" | "UY" | "UZ" | "VU" | "VE" | "VN" | "VG" | "VI" | "WF" | "EH" | "YE" | "ZM" | "ZW" | "AX";
+        /**
+         * @description Function of a position, from the position taxonomy
+         * @enum {string}
+         */
+        JobFunction: "Administrative" | "Agriculture and Environment" | "Construction and Trades" | "Consulting and Advisory" | "Customer Service" | "Design" | "Education" | "Energy and Utilities" | "Entertainment and Gaming" | "Executive and Leadership" | "Finance" | "Hospitality and Tourism" | "Human Resources" | "Legal" | "Marketing" | "Media and Communications" | "Medical and Health" | "Nonprofit and Government" | "Not Employed" | "Operations" | "Other" | "Personal and Home Services" | "Product" | "Project and Program Management" | "Public Safety and Security" | "Real Estate" | "Research and Science" | "Retail and Consumer" | "Sales" | "Software" | "Traditional Engineering" | "Transportation and Logistics";
+        /**
+         * @description Sub-function of a position, from the position taxonomy
+         * @enum {string}
+         */
+        JobSubFunction: "Academia" | "Academic and Scholarly Research" | "Account Executive" | "Account Management" | "Accounting" | "Advertising" | "Advocacy" | "Aerospace Engineering" | "Agile and Scrum" | "Agriculture and Landscaping" | "Allied Healthcare" | "Anesthesiology" | "Animal and Livestock Operations" | "Architectural Design" | "Architectural Engineering" | "Audio and Sound" | "Audit" | "Automotive Engineering" | "Backend and API Engineering" | "Banking and Finance" | "Bartender" | "Beauty and Hair Services" | "Billing and Collections" | "Biomedical Engineering" | "Branch and Regional Operations" | "Brand Design" | "Brand Marketing" | "Broadcasting" | "Business Analysis" | "Business Applications ERP and CRM" | "Business Continuity and Risk Operations" | "Business Development" | "Business Operations" | "Call Center" | "Cardiology" | "Career Break" | "Carpenter" | "Cashier" | "Certification and Regulatory Engineering" | "Channel Sales" | "Chef and Culinary" | "Chemical Engineering" | "Chief of Staff" | "Childcare" | "Civil Engineering" | "Claims and Actuarial" | "Cleaning and Janitorial" | "Client Services" | "Clinical Operations and Trials" | "Clinical Research" | "Clinical and Research Project Management" | "Cloud and Platform Engineering" | "Coaching" | "Commercial Real Estate" | "Community Outreach" | "Compensation and Benefits" | "Compliance" | "Construction Project Management" | "Construction Safety and HSE" | "Content Creator" | "Content Marketing" | "Contracts" | "Controllers" | "Controls Automation and Instrumentation" | "Copywriting" | "Corporate Communications" | "Corporate Development and Mergers and Acquisitions" | "Corporate Finance" | "Corporate Law" | "Corporate and Business Strategy" | "Corrections" | "Creative Design" | "Credit Analysis" | "Cultural Institutions and Programs" | "Curriculum Development" | "Customer Experience" | "Customer Onboarding and Implementation" | "Customer Operations" | "Customer Service Leadership" | "Customer Success" | "Customer Support" | "Customs and Import Export" | "Cybersecurity and Security Engineering" | "Data Engineering and Analytics" | "Data Entry" | "Data Science and AI" | "Data and AI Product Management" | "Database Engineering and Administration" | "Delivery Driver" | "Demand Generation and ABM" | "Dental" | "DevOps and Site Reliability" | "Digital and Performance Marketing" | "Dispatcher" | "Diversity and Inclusion" | "Domestic Care" | "E-commerce Operations" | "EMT and Paramedic" | "Early Childhood Education" | "Editing" | "Education - Teaching" | "Educational Administration" | "Eldercare" | "Electrical Engineering" | "Electrician" | "Email Lifecycle and CRM Marketing" | "Embedded Systems Firmware and Hardware" | "Emergency Management and Disaster Relief" | "Emergency Medicine" | "Employee Relations" | "Employment Law" | "Energy Power and Nuclear Engineering" | "Engineering Technician" | "Enterprise Sales" | "Enterprise and Solutions Architecture" | "Entertainment Production" | "Environmental Engineering" | "Environmental Science" | "Environmental Sustainability" | "Event and Field Marketing" | "Events and Hospitality Planning" | "Executive Assistant" | "Facilities Management" | "Fashion Design" | "Field Sales" | "Field and Service Operations" | "Film and Media Entertainment" | "Finance Leadership" | "Financial Consulting" | "Financial Planning and Analysis" | "Financial Reporting" | "Firefighter" | "Fitness and Wellness" | "Fleet Management" | "Food Service" | "Forestry Fisheries and Aquaculture" | "Freelancer" | "Freight Forwarding" | "Front Desk" | "Frontend Engineering" | "Full Stack and Application Engineering" | "Fundraising" | "Funeral and Personal Services" | "Game Development" | "General Administrative" | "General Advisory" | "General Clinical Care" | "General Contractor" | "General Customer Service" | "General HR" | "General Legal" | "General Management" | "General Marketing" | "General Sales" | "Global Mobility and Immigration" | "Governance and Board Operations" | "Government Administration" | "Grant Writing" | "Graphic Design" | "Growth Marketing" | "Growth Product Management" | "HR Business Partner" | "HR Compliance" | "HR Consulting" | "HR Leadership" | "HR Operations" | "HRIS and People Systems" | "HVAC" | "Hardware Product Management" | "Healthcare Consulting" | "Healthcare Quality and Patient Safety" | "Heavy Equipment Operators" | "Help Desk and IT Support" | "Higher Education" | "Home Health and Caregiving" | "Home Repair" | "Hotels and Hospitality Management" | "Housekeeping" | "IT Infrastructure Systems and Networks" | "IT Management and Service Operations" | "IT Procurement" | "IT Project Management" | "Illustration" | "Implementation Consulting" | "Implementation and Delivery Management" | "Industrial Design" | "Inside Sales and Telesales" | "Insurance and Financial Sales" | "Insurance and Underwriting" | "Intellectual Property" | "Intelligence Homeland and Border Security" | "Interaction Design" | "Interior Design" | "International Development" | "Investment Banking" | "Investment Management" | "Investor Relations" | "Job Seeker" | "Journalism" | "K-12 Teaching" | "Laboratory and Experimental Research" | "Land and Site Development" | "Last Mile and Reverse Logistics" | "Learning and Development" | "Leasing" | "Library Services" | "Life Sciences" | "Litigation" | "Logistics and Distribution" | "Loss Prevention" | "Management Consulting" | "Manufacturing Engineering" | "Marine and Naval Engineering" | "Maritime" | "Market Research and Consumer Insights" | "Marketing Automation" | "Marketing Leadership" | "Marketing Operations" | "Marketing and Sales Consulting" | "Mason" | "Massage Therapy" | "Materials Engineering" | "Mechanical Engineering" | "Medical Administration" | "Medical Affairs and Pharmacovigilance" | "Medical Research" | "Military" | "Mining and Extraction" | "Mobile Engineering" | "Mortgage and Real Estate Finance" | "Motion 3D and Animation Design" | "Museums and Cultural Institutions" | "Nonprofit and Volunteer Program Management" | "Nuclear" | "Nursing" | "Office Management" | "Oil and Gas" | "Oncology" | "Operations Consulting" | "Operations Leadership" | "Organizational Development" | "Other" | "Painter" | "Paralegal" | "Partner and Community Marketing" | "Partnership Sales" | "Payments and Fintech" | "Payroll" | "Pediatrics" | "People Analytics" | "Performing Arts" | "Personal Assistant" | "Personal Training" | "Pet Services" | "Petroleum and Mining Engineering" | "Pharmacy" | "Photography" | "Physical Occupational and Speech Therapy" | "Physical Security" | "Physicians and Doctors" | "Pilot and Flight Operations" | "Plumber" | "Police and Law Enforcement" | "Policy and Economic Research" | "Portfolio and PMO" | "Power Generation" | "Privacy and Data Protection" | "Private Equity and Venture Capital" | "Private Investigation" | "Private Tutoring" | "Process Improvement and Operational Excellence" | "Product Analytics" | "Product Discovery and Research" | "Product Leadership" | "Product Management and Ownership" | "Product Marketing" | "Product Operations" | "Product Portfolio and Lifecycle" | "Product Strategy" | "Program Management" | "Project Controls and Planning" | "Project Management" | "Property Appraisal and Valuation" | "Property and Tenant Management" | "Psychiatry Psychology and Mental Health" | "Public Affairs" | "Public Health and Preventive Care" | "Public Policy" | "Public Relations" | "Public Safety Inspection" | "Quality Management" | "Quantitative and Survey Research" | "Radiology" | "Real Estate Acquisitions and Investment" | "Real Estate Advisory and Research" | "Real Estate Brokerage and Sales" | "Real Estate Development" | "Receptionist" | "Records Management" | "Recruiting and Talent Acquisition" | "Regulatory Affairs" | "Regulatory Inspection" | "Religious and Community Ministry" | "Renewable Energy" | "Renewals and Retention" | "Research Operations and Administration" | "Residential Real Estate" | "Restaurant Management" | "Retail Buying and Merchandising" | "Retail Sales" | "Retail and Store Operations" | "Retired" | "Revenue Operations" | "Risk Management" | "Robotics and Mechatronics Engineering" | "Roofer" | "SDR and BDR" | "SEO and SEM" | "Safety and HSE Operations" | "Sales Enablement" | "Sales Engineering and Pre-Sales" | "Sales Leadership" | "Sales Operations" | "Scheduling" | "Scientific Research and Development" | "Security Guard" | "Server and Waitstaff" | "Site Supervisor" | "Social Media Management" | "Social Media and Influencer Marketing" | "Social Work and Services" | "Social and Behavioral Science" | "Software Engineering" | "Software QA Testing and Automation" | "Special Education" | "Sports and Esports" | "Store Management" | "Strategic Planning" | "Strategy Consulting" | "Structural Engineering" | "Student" | "Supply Chain Consulting" | "Supply Chain Planning" | "Supply Chain and Procurement" | "Surgery" | "Surveyor" | "Sustainability Operations" | "Sustainability and ESG Consulting" | "Sustainability and ESG Leadership" | "Sustainable Finance" | "Talent Management" | "Tax" | "Tax Law" | "Technical Product Management" | "Technical Support" | "Technical Writing" | "Technology and Engineering Leadership" | "Technology and IT Consulting" | "Title and Escrow" | "Tour Guide" | "Traditional Crafts" | "Train Operator" | "Training and Facilitation" | "Transformation and Change Management" | "Transformation and Innovation" | "Translation and Localization" | "Transportation Operations" | "Travel and Tourism Services" | "Treasury" | "Truck Driver" | "Trust and Safety" | "UI and UX Design" | "UX Research" | "Utilities Operations" | "Vendor Management" | "Veterinary Medicine" | "Video Games and Gaming" | "Video Production" | "Virtual Assistant" | "Visual Design" | "Visual Merchandising" | "Warehousing and Inventory" | "Welder" | "Wholesale and Distribution" | "Workforce Planning" | "Workplace and Real Estate Strategy";
+        /**
+         * @description Seniority of a position, from the position taxonomy
+         * @enum {string}
+         */
+        Seniority: "CXO" | "VP" | "Director" | "Head" | "Manager" | "Partner" | "Owner / Founder" | "Individual Contributor" | "Intern" | "Other";
+        /**
+         * @description Contract type declared on a position
+         * @enum {string}
+         */
+        ContractType: "full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship";
+        /**
+         * @description Zone id: main region (MR), UN region (GR) or subregion (GSR), market cluster (MC), institutional or economic group (IG). See docs.reversecontact.com/reference/areas
+         * @enum {string}
+         */
+        Area: "MR:APAC" | "MR:EMEA" | "MR:AMER" | "MR:NAMER" | "MR:LATAM" | "GR:AFR" | "GR:ASI" | "GR:EUR" | "GR:OCE" | "GR:AMR" | "GSR:ANZ" | "GSR:CAM" | "GSR:CAR" | "GSR:CAS" | "GSR:EAF" | "GSR:EAS" | "GSR:EEU" | "GSR:MAF" | "GSR:MEL" | "GSR:MIC" | "GSR:NAF" | "GSR:NEU" | "GSR:POLY" | "GSR:SAF" | "GSR:SAM" | "GSR:SEA" | "GSR:SEU" | "GSR:SSA" | "GSR:WAF" | "GSR:WAS" | "GSR:WEU" | "GSR:NOAM" | "GSR:LAC" | "GSR:SAS" | "MC:BALT" | "MC:BENELUX" | "MC:CEE" | "MC:DACH" | "MC:ENAFR" | "MC:FRAFR" | "MC:GCR" | "MC:IBER" | "MC:INSC" | "MC:JPKR" | "MC:LUSAFR" | "MC:MAGH" | "MC:ME" | "MC:MENA" | "MC:NORD" | "MC:PACI" | "MC:SCAN" | "MC:SEE" | "MC:UKI" | "IG:APEC" | "IG:EEA" | "IG:EFTA" | "IG:EU" | "IG:EZ" | "IG:GCC" | "IG:RCEP" | "IG:SCH" | "IG:USMCA";
+        /**
+         * @description Kind of email to find: 'professional', 'personal', or 'any' to accept either
+         * @enum {string}
+         */
+        EmailType: "professional" | "personal" | "any";
         V2LimitInfo: {
             /** @description Maximum allowed in the window */
             limit: number;
@@ -1048,9 +1088,8 @@ export interface components {
             /**
              * @description Kind of email to find: 'professional', 'personal', or 'any' to accept either. Omit it to find professional emails.
              * @default professional
-             * @enum {string}
              */
-            emailType?: "professional" | "personal" | "any";
+            emailType?: components["schemas"]["EmailType"];
             /**
              * Format: uri
              * @description Optional HTTPS URL for the result callback
@@ -1117,6 +1156,13 @@ export interface components {
                 /** @description Maximum followers, inclusive */
                 max?: number;
             };
+            /** @description Connection count range, bounds inclusive. One bound is enough: { "min": 501 } keeps profiles with more than 500 connections */
+            connectionsCount?: {
+                /** @description Minimum connections, inclusive */
+                min?: number;
+                /** @description Maximum connections, inclusive */
+                max?: number;
+            };
             /** @description Current or past position title */
             positionTitle?: string | string[];
             /** @description Current or past position title to exclude */
@@ -1126,9 +1172,9 @@ export interface components {
             /** @description Current or past company name to exclude */
             excludeCompanyName?: string | string[];
             /** @description Current or past company industry from the published taxonomy */
-            companyIndustry?: string | string[];
+            companyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Current or past company industry to exclude */
-            excludeCompanyIndustry?: string | string[];
+            excludeCompanyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Current or past company com_ id */
             companyId?: string | string[];
             /** @description Current or past company com_ id to exclude */
@@ -1162,7 +1208,7 @@ export interface components {
             /** @description Current employer public id or slug to exclude */
             excludeCurrentCompanyPublicId?: string | string[];
             /** @description Current employer industry from the published taxonomy */
-            currentCompanyIndustry?: string | string[];
+            currentCompanyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             currentCompanyEmployeeCountRange?: {
                 /** @description Minimum current-employer size */
                 min?: number;
@@ -1170,25 +1216,25 @@ export interface components {
                 max?: number;
             };
             /** @description Current function taxonomy value */
-            currentFunction?: string | string[];
+            currentFunction?: components["schemas"]["JobFunction"] | components["schemas"]["JobFunction"][];
             /** @description Current function taxonomy value to exclude */
-            excludeCurrentFunction?: string | string[];
+            excludeCurrentFunction?: components["schemas"]["JobFunction"] | components["schemas"]["JobFunction"][];
             /** @description Current sub-function taxonomy value */
-            currentSubFunction?: string | string[];
+            currentSubFunction?: components["schemas"]["JobSubFunction"] | components["schemas"]["JobSubFunction"][];
             /** @description Current sub-function taxonomy value to exclude */
-            excludeCurrentSubFunction?: string | string[];
+            excludeCurrentSubFunction?: components["schemas"]["JobSubFunction"] | components["schemas"]["JobSubFunction"][];
             /** @description Current seniority taxonomy value */
-            currentSeniority?: string | string[];
+            currentSeniority?: components["schemas"]["Seniority"] | components["schemas"]["Seniority"][];
             /** @description Current seniority taxonomy value to exclude */
-            excludeCurrentSeniority?: string | string[];
+            excludeCurrentSeniority?: components["schemas"]["Seniority"] | components["schemas"]["Seniority"][];
             /** @description Contract type of the current position, or OR-matched types. A position that declares no contract type never matches */
-            currentContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            currentContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type of the current position to exclude. Needs a positive filter next to it */
-            excludeCurrentContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            excludeCurrentContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type of any position, current or past, or OR-matched types. A position that declares no contract type never matches */
-            contractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            contractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type held in any position, current or past, to exclude. Needs a positive filter next to it */
-            excludeContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            excludeContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description School name, or OR-matched names, matched against every education entry. Whole words; every word must appear in the same school */
             schoolName?: string | string[];
             totalExperienceMonths?: {
@@ -1226,7 +1272,9 @@ export interface components {
                 /** @description Country name (e.g. "France") */
                 country?: string | string[];
                 /** @description ISO 3166 country code (e.g. "FR") */
-                countryCode?: string | string[];
+                countryCode?: components["schemas"]["CountryCode"] | components["schemas"]["CountryCode"][];
+                /** @description Zone id, or a list (e.g. "MR:EMEA", ["MC:DACH", "MC:NORD"]): main regions, UN regions and subregions, market clusters, institutional groups. Each zone matches the person's country among its member countries; zones add up with each other and with countryCode, and combine with region and city. The members of each zone are listed by the available-fields endpoint (location.area.areaCatalog). */
+                area?: components["schemas"]["Area"] | components["schemas"]["Area"][];
                 /** @description State or region */
                 region?: string | string[];
                 /** @description City */
@@ -1272,6 +1320,13 @@ export interface components {
                 /** @description Maximum followers, inclusive */
                 max?: number;
             };
+            /** @description Connection count range, bounds inclusive. One bound is enough: { "min": 501 } keeps profiles with more than 500 connections */
+            connectionsCount?: {
+                /** @description Minimum connections, inclusive */
+                min?: number;
+                /** @description Maximum connections, inclusive */
+                max?: number;
+            };
             /** @description Current or past position title */
             positionTitle?: string | string[];
             /** @description Current or past position title to exclude */
@@ -1281,9 +1336,9 @@ export interface components {
             /** @description Current or past company name to exclude */
             excludeCompanyName?: string | string[];
             /** @description Current or past company industry from the published taxonomy */
-            companyIndustry?: string | string[];
+            companyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Current or past company industry to exclude */
-            excludeCompanyIndustry?: string | string[];
+            excludeCompanyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Current or past company com_ id */
             companyId?: string | string[];
             /** @description Current or past company com_ id to exclude */
@@ -1317,7 +1372,7 @@ export interface components {
             /** @description Current employer public id or slug to exclude */
             excludeCurrentCompanyPublicId?: string | string[];
             /** @description Current employer industry from the published taxonomy */
-            currentCompanyIndustry?: string | string[];
+            currentCompanyIndustry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             currentCompanyEmployeeCountRange?: {
                 /** @description Minimum current-employer size */
                 min?: number;
@@ -1325,25 +1380,25 @@ export interface components {
                 max?: number;
             };
             /** @description Current function taxonomy value */
-            currentFunction?: string | string[];
+            currentFunction?: components["schemas"]["JobFunction"] | components["schemas"]["JobFunction"][];
             /** @description Current function taxonomy value to exclude */
-            excludeCurrentFunction?: string | string[];
+            excludeCurrentFunction?: components["schemas"]["JobFunction"] | components["schemas"]["JobFunction"][];
             /** @description Current sub-function taxonomy value */
-            currentSubFunction?: string | string[];
+            currentSubFunction?: components["schemas"]["JobSubFunction"] | components["schemas"]["JobSubFunction"][];
             /** @description Current sub-function taxonomy value to exclude */
-            excludeCurrentSubFunction?: string | string[];
+            excludeCurrentSubFunction?: components["schemas"]["JobSubFunction"] | components["schemas"]["JobSubFunction"][];
             /** @description Current seniority taxonomy value */
-            currentSeniority?: string | string[];
+            currentSeniority?: components["schemas"]["Seniority"] | components["schemas"]["Seniority"][];
             /** @description Current seniority taxonomy value to exclude */
-            excludeCurrentSeniority?: string | string[];
+            excludeCurrentSeniority?: components["schemas"]["Seniority"] | components["schemas"]["Seniority"][];
             /** @description Contract type of the current position, or OR-matched types. A position that declares no contract type never matches */
-            currentContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            currentContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type of the current position to exclude. Needs a positive filter next to it */
-            excludeCurrentContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            excludeCurrentContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type of any position, current or past, or OR-matched types. A position that declares no contract type never matches */
-            contractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            contractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description Contract type held in any position, current or past, to exclude. Needs a positive filter next to it */
-            excludeContractType?: ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship") | ("full-time" | "part-time" | "permanent" | "contract" | "internship" | "self-employed" | "freelance" | "apprenticeship")[];
+            excludeContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description School name, or OR-matched names, matched against every education entry. Whole words; every word must appear in the same school */
             schoolName?: string | string[];
             totalExperienceMonths?: {
@@ -1381,7 +1436,9 @@ export interface components {
                 /** @description Country name (e.g. "France") */
                 country?: string | string[];
                 /** @description ISO 3166 country code (e.g. "FR") */
-                countryCode?: string | string[];
+                countryCode?: components["schemas"]["CountryCode"] | components["schemas"]["CountryCode"][];
+                /** @description Zone id, or a list (e.g. "MR:EMEA", ["MC:DACH", "MC:NORD"]): main regions, UN regions and subregions, market clusters, institutional groups. Each zone matches the person's country among its member countries; zones add up with each other and with countryCode, and combine with region and city. The members of each zone are listed by the available-fields endpoint (location.area.areaCatalog). */
+                area?: components["schemas"]["Area"] | components["schemas"]["Area"][];
                 /** @description State or region */
                 region?: string | string[];
                 /** @description City */
@@ -1450,7 +1507,7 @@ export interface components {
             /** @description Filter by website domain (e.g. acme.com) */
             companyDomain?: string;
             /** @description Industry name or array of industries. Matched exactly against the published taxonomy (see docs.reversecontact.com/guides/industries); an unlisted value is rejected with 422 INVALID_FILTER_VALUE and suggestions. */
-            industry?: string | string[];
+            industry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Speciality listed on the organization profile, or an array of specialities (OR matching) */
             specialities?: string | string[];
             employeeCountRange?: {
@@ -1474,7 +1531,9 @@ export interface components {
             /** @description Headquarters location; each property accepts one value or an OR-matched list */
             location?: {
                 country?: string | string[];
-                countryCode?: string | string[];
+                countryCode?: components["schemas"]["CountryCode"] | components["schemas"]["CountryCode"][];
+                /** @description Zone id, or a list (e.g. "MR:EMEA", ["MC:DACH", "MC:NORD"]): main regions, UN regions and subregions, market clusters, institutional groups. Each zone matches the headquarters' country among its member countries; zones add up with each other and with countryCode, and combine with region and city. The members of each zone are listed by the available-fields endpoint (location.area.areaCatalog). */
+                area?: components["schemas"]["Area"] | components["schemas"]["Area"][];
                 region?: string | string[];
                 city?: string | string[];
             };
@@ -1506,7 +1565,7 @@ export interface components {
             /** @description Filter by website domain (e.g. acme.com) */
             companyDomain?: string;
             /** @description Industry name or array of industries. Matched exactly against the published taxonomy (see docs.reversecontact.com/guides/industries); an unlisted value is rejected with 422 INVALID_FILTER_VALUE and suggestions. */
-            industry?: string | string[];
+            industry?: components["schemas"]["Industry"] | components["schemas"]["Industry"][];
             /** @description Speciality listed on the organization profile, or an array of specialities (OR matching) */
             specialities?: string | string[];
             employeeCountRange?: {
@@ -1530,7 +1589,9 @@ export interface components {
             /** @description Headquarters location; each property accepts one value or an OR-matched list */
             location?: {
                 country?: string | string[];
-                countryCode?: string | string[];
+                countryCode?: components["schemas"]["CountryCode"] | components["schemas"]["CountryCode"][];
+                /** @description Zone id, or a list (e.g. "MR:EMEA", ["MC:DACH", "MC:NORD"]): main regions, UN regions and subregions, market clusters, institutional groups. Each zone matches the headquarters' country among its member countries; zones add up with each other and with countryCode, and combine with region and city. The members of each zone are listed by the available-fields endpoint (location.area.areaCatalog). */
+                area?: components["schemas"]["Area"] | components["schemas"]["Area"][];
                 region?: string | string[];
                 city?: string | string[];
             };

@@ -140,6 +140,26 @@ Iterators: `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`,
 as their page method, an optional `perPage` (default 25), and required `{ maxResults }`.
 Search and count requests require at least one filter; a pagination setting alone is not a filter.
 
+### Published lists
+
+The closed lists of the API are exported as constants: `Industry`, `CountryCode`, `JobFunction`,
+`JobSubFunction`, `Seniority`, `ContractType`, `Area` and `EmailType`. Each one is an object of
+values (`Industry.SOFTWARE_DEVELOPMENT` is `'Software Development'`) and the type of those values.
+
+```ts
+import { Area, Industry, Seniority } from '@reverse-contact/sdk'
+
+const leaders = await client.search.countPeople({
+  currentCompanyIndustry: Industry.SOFTWARE_DEVELOPMENT,
+  currentSeniority: [Seniority.CXO, Seniority.OWNER_FOUNDER],
+  location: { area: Area.MC_DACH }
+})
+console.log('Matches:', leaders.data.count)
+```
+
+The parameters also accept any string, so a value added to a list after your SDK version still
+compiles. The API rejects a value it does not know with a 422 error.
+
 ### Live fetch
 
 ```ts

@@ -8,7 +8,7 @@ it('typechecks every TypeScript README example without executing API requests', 
   const examples = [...readme.matchAll(/```ts\n([\s\S]*?)```/g)].map(match => match[1] ?? '')
   expect(examples.length).toBeGreaterThan(10)
   const source = `
-    import ReverseContact, { APIError, DailyLimitError, KeyCreditLimitError, JobTimeoutError, parseWebhookDelivery } from '../src'
+    import ReverseContact, { APIError, Area, DailyLimitError, Industry, KeyCreditLimitError, JobTimeoutError, parseWebhookDelivery, Seniority } from '../src'
     declare const receivedBody: unknown
     ${examples
       .map(
