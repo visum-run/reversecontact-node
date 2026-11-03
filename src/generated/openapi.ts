@@ -124,6 +124,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v2/search/people/auto-suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * People auto-suggestion
+         * @description Returns the skills that start with what someone has typed, most common first, to build a search box in your own product. Credits: 0 (free).
+         */
+        post: operations["searchPeopleAutoSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/search/organizations": {
         parameters: {
             query?: never;
@@ -874,6 +894,22 @@ export interface components {
             /** @description Total profiles matching the supplied filters */
             count: number;
         };
+        SearchPeopleAutoSuggestionData: {
+            /** @constant */
+            object: "search_auto_suggestions";
+            /** @constant */
+            entity: "person";
+            /**
+             * @description The filter completed
+             * @enum {string}
+             */
+            field: "skills";
+            /** @description Values starting with the query, most common first */
+            suggestions: {
+                /** @description A value to show, and to send as it is in the filter */
+                value: string;
+            }[];
+        };
         CheckPersonData: {
             /** @description true if the profile exists in the database */
             exists?: boolean;
@@ -1297,6 +1333,10 @@ export interface components {
             excludeContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description School name, or OR-matched names, matched against every education entry. Whole words; every word must appear in the same school */
             schoolName?: string | string[];
+            /** @description Reverse Contact school id (sch_ followed by 26 characters), or OR-matched ids, matched against every education entry */
+            schoolId?: string | string[];
+            /** @description School Social identifier, or OR-matched identifiers, matched against every education entry. Some education entries do not carry one */
+            schoolLinkedinId?: string | string[];
             totalExperienceMonths?: {
                 /** @description Minimum total career length in months */
                 min?: number;
@@ -1461,6 +1501,10 @@ export interface components {
             excludeContractType?: components["schemas"]["ContractType"] | components["schemas"]["ContractType"][];
             /** @description School name, or OR-matched names, matched against every education entry. Whole words; every word must appear in the same school */
             schoolName?: string | string[];
+            /** @description Reverse Contact school id (sch_ followed by 26 characters), or OR-matched ids, matched against every education entry */
+            schoolId?: string | string[];
+            /** @description School Social identifier, or OR-matched identifiers, matched against every education entry. Some education entries do not carry one */
+            schoolLinkedinId?: string | string[];
             totalExperienceMonths?: {
                 /** @description Minimum total career length in months */
                 min?: number;
@@ -1561,6 +1605,17 @@ export interface components {
             perPage?: number;
         } & (unknown | unknown);
         SearchPeopleCountBody: components["schemas"]["SearchPeopleFilters"];
+        SearchPeopleAutoSuggestionBody: {
+            /**
+             * @description The filter to complete
+             * @enum {string}
+             */
+            field: "skills";
+            /** @description What has been typed so far */
+            query: string;
+            /** @description Maximum values returned, 10 by default */
+            limit?: number;
+        };
         SearchOrganizationsFilters: {
             /** @description Filter by organization name */
             companyName?: string;
@@ -2206,6 +2261,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
                         data?: components["schemas"]["SearchPeopleCountData"];
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    searchPeopleAutoSuggestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchPeopleAutoSuggestionBody"];
+            };
+        };
+        responses: {
+            /** @description People auto-suggestion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: components["schemas"]["SearchPeopleAutoSuggestionData"];
                     };
                 };
             };

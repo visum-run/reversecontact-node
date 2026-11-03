@@ -73,6 +73,7 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | | `organizations`, `organizationsByPrompt` | A `Page` of organizations |
 | | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
 | | `countPeople`, `countOrganizations` | The number of matches (free) |
+| | `peopleAutoSuggestion` | The skills that start with what someone typed, for a search box in your own product (free) |
 | | `peopleFields`, `organizationsFields` | The available search filters (free) |
 | `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Job` that finds email addresses or phone numbers, or checks an email address |
 | `client.jobs` | `retrieve`, `wait` | One job snapshot, or the final job result |

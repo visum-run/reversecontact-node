@@ -61,6 +61,18 @@ export class Search {
     )
   }
 
+  peopleAutoSuggestion(
+    params: Body<'searchPeopleAutoSuggestion'>,
+    options?: RequestOptions
+  ): Promise<Result<Data<'searchPeopleAutoSuggestion'>>> {
+    return this.transport.request<Data<'searchPeopleAutoSuggestion'>>(
+      'POST',
+      '/v2/search/people/auto-suggestion',
+      params,
+      options
+    )
+  }
+
   organizations(
     params: IteratorParams<Body<'searchOrganizations'>>,
     options?: RequestOptions
