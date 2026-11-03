@@ -1281,6 +1281,15 @@ export const EmailType = {
 } as const
 export type EmailType = (typeof EmailType)[keyof typeof EmailType]
 
+/** valid: the address can receive mail. risky: it may receive mail, for example on a catch-all domain. invalid: it cannot receive mail. unknown: the check was inconclusive. */
+export const EmailVerificationStatus = {
+  VALID: "valid",
+  RISKY: "risky",
+  INVALID: "invalid",
+  UNKNOWN: "unknown"
+} as const
+export type EmailVerificationStatus = (typeof EmailVerificationStatus)[keyof typeof EmailVerificationStatus]
+
 /** Any value of a published list. */
 export type CatalogValue =
   | Industry
@@ -1291,3 +1300,4 @@ export type CatalogValue =
   | ContractType
   | Area
   | EmailType
+  | EmailVerificationStatus

@@ -83,6 +83,7 @@ export type SearchOrganizationsByPromptParams = Body<'searchOrganizationsByPromp
 export type FetchPersonParams = Body<'fetchPerson'>
 export type FetchCompanyParams = Body<'fetchCompany'>
 export type FindEmailParams = Body<'findContactEmail'>
+export type VerifyEmailParams = Body<'verifyContactEmail'>
 export type FindPhoneParams = Body<'findContactPhone'>
 export type JobStatus = components['schemas']['PollWebhookData']['status']
 export type JobAcknowledgement = Required<components['schemas']['JobAckData']>
@@ -90,4 +91,5 @@ export type JobSnapshot<T = unknown> = Omit<components['schemas']['PollWebhookDa
   result: T | null
 }
 export type ContactValue = { value: string; type: string }
+export type EmailVerification = components['schemas']['ContactEmailVerifyResult']
 export type Usage = Result<null>

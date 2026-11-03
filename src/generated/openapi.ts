@@ -364,6 +364,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v2/contact/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify an email address
+         * @description Asynchronously checks whether an email address can receive mail and returns valid, risky, invalid or unknown. The request is acknowledged with data.webhookId and data.pollUrl. Poll GET /v2/webhooks/{webhookId} for the verdict in data.result (ContactEmailVerifyResult), or receive it on the optional webhookUrl callback. Credits: 1 per verdict, whatever it says. A check that fails is refunded.
+         */
+        post: operations["verifyContactEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/contact/phone": {
         parameters: {
             query?: never;
@@ -468,6 +488,11 @@ export interface components {
          * @enum {string}
          */
         EmailType: "professional" | "personal" | "any";
+        /**
+         * @description valid: the address can receive mail. risky: it may receive mail, for example on a catch-all domain. invalid: it cannot receive mail. unknown: the check was inconclusive.
+         * @enum {string}
+         */
+        EmailVerificationStatus: "valid" | "risky" | "invalid" | "unknown";
         V2LimitInfo: {
             /** @description Maximum allowed in the window */
             limit: number;
@@ -891,6 +916,28 @@ export interface components {
             /** @description Convenience path to the polling endpoint for this job */
             pollUrl: string;
         };
+        /** @description Immediate acknowledgement for the asynchronous Email Verification. */
+        ContactEmailVerifyAckData: {
+            /**
+             * @description Job acknowledgement status
+             * @example created
+             */
+            status: string;
+            /** @description Unique job id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
+            webhookId: string;
+            /** @description Convenience path to the polling endpoint for this job */
+            pollUrl: string;
+        };
+        /** @description The verdict, in data.result of the poll response and in the webhook callback. */
+        ContactEmailVerifyResult: {
+            /**
+             * Format: email
+             * @description The address that was checked
+             * @example jane@acme.com
+             */
+            email: string;
+            status: components["schemas"]["EmailVerificationStatus"];
+        };
         /** @description Immediate acknowledgement for the asynchronous Contact Phone Finder. */
         ContactPhoneAckData: {
             /**
@@ -1096,6 +1143,19 @@ export interface components {
              */
             webhookUrl?: string;
         } & (unknown | unknown | unknown | unknown);
+        ContactEmailVerifyBody: {
+            /**
+             * Format: email
+             * @description Email address to verify
+             * @example jane@acme.com
+             */
+            email: string;
+            /**
+             * Format: uri
+             * @description Optional HTTPS URL for the result callback
+             */
+            webhookUrl?: string;
+        };
         /** @description Provide exactly one of: url; id; fullName + companyDomain; or firstName + lastName + companyDomain. */
         ContactPhoneBody: {
             /**
@@ -3325,6 +3385,120 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
                         data?: components["schemas"]["ContactEmailAckData"];
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation, or an Idempotency-Key that is not 1 to 255 printable ASCII characters (INVALID_IDEMPOTENCY_KEY) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_IN_USE: a request with the same Idempotency-Key is still being processed. Retry after the Retry-After seconds to receive its response. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain, or an Idempotency-Key already used with a different body (IDEMPOTENCY_KEY_REUSED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    verifyContactEmail: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional. A key you choose (1 to 255 printable ASCII characters, a UUID for example) that makes the request safe to retry. For 24 hours, a request with the same key and the same body returns the first response with Idempotent-Replayed: true, without starting another lookup or debiting credits. */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactEmailVerifyBody"];
+            };
+        };
+        responses: {
+            /** @description Email verification job created */
+            200: {
+                headers: {
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    "Retry-After"?: 2;
+                    /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
+                    "Idempotent-Replayed"?: "true";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: components["schemas"]["ContactEmailVerifyAckData"];
                     };
                 };
             };

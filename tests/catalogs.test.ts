@@ -6,6 +6,7 @@ import {
   ContractType,
   CountryCode,
   EmailType,
+  EmailVerificationStatus,
   type FindEmailParams,
   Industry,
   JobFunction,
@@ -24,7 +25,8 @@ const catalogs = {
   Seniority,
   ContractType,
   Area,
-  EmailType
+  EmailType,
+  EmailVerificationStatus
 }
 const specPath = new URL('../../openapi/public-v2.json', import.meta.url)
 const hasSnapshot = existsSync(specPath)

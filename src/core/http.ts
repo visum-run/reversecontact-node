@@ -226,7 +226,8 @@ export class Transport {
     }
     const body = method === 'GET' || params === undefined ? undefined : JSON.stringify(params)
     const contactSubmit =
-      method === 'POST' && ['/v2/contact/email', '/v2/contact/phone'].includes(path)
+      method === 'POST' &&
+      ['/v2/contact/email', '/v2/contact/email/verify', '/v2/contact/phone'].includes(path)
     if (contactSubmit) {
       if (options.idempotencyKey !== undefined) validateIdempotencyKey(options.idempotencyKey)
       validateIdempotencyHeaders(options.headers)

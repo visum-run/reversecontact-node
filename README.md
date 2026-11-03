@@ -74,7 +74,7 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
 | | `countPeople`, `countOrganizations` | The number of matches (free) |
 | | `peopleFields`, `organizationsFields` | The available search filters (free) |
-| `client.contact` | `findEmail`, `findPhone` | A `Job` that finds email addresses or phone numbers |
+| `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Job` that finds email addresses or phone numbers, or checks an email address |
 | `client.jobs` | `retrieve`, `wait` | One job snapshot, or the final job result |
 | `client.usage` | `retrieve` | Credit balance and rate limits, in `quotas` (free) |
 
@@ -201,9 +201,20 @@ Each finder takes one person: `url`, `id` (a `prs_…` person id), or a name wit
 before any job starts. Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
 cannot use the phone endpoint; a `GoneError` exposes the API's `alternative` when provided.
 
+### Verify an email address
+
+```ts
+const verifyJob = await client.contact.verifyEmail({ email: 'jane@example.com' })
+const verdict = await verifyJob.wait()
+console.log(verdict.data.result?.status)
+```
+
+The final job result holds `email` and `status`, one of `valid`, `risky`, `invalid` or `unknown`
+(exported as `EmailVerificationStatus`).
+
 #### Safe retries
 
-Both contact finders send a fresh UUID v4 as `Idempotency-Key` for each call and reuse it
+The contact submits (`findEmail`, `findPhone`, `verifyEmail`) send a fresh UUID v4 as `Idempotency-Key` for each call and reuse it
 across all automatic retries. The API keeps a successful acknowledgement for 24 hours,
 scoped to the workspace and endpoint. Reusing a key with the same body returns that
 acknowledgement without starting or charging for another job.

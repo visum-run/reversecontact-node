@@ -219,6 +219,42 @@ describe.each(['findEmail', 'findPhone'] as const)('%s idempotency', method => {
   })
 })
 
+describe('verifyEmail', () => {
+  const verification = { email: 'jane@example.com', status: 'risky' }
+
+  it('posts the address and returns the verdict from the job', async () => {
+    const { client, calls } = mockClient([
+      ack(),
+      ok({ webhookId: 'job-id', status: 'succeeded', result: verification })
+    ])
+    const job = await client.contact.verifyEmail({ email: 'jane@example.com' })
+    const result = await job.wait()
+    expect(calls[0]?.init.method).toBe('POST')
+    expect(calls[0]?.url.pathname).toBe('/v2/contact/email/verify')
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ email: 'jane@example.com' })
+    expect(result.data.result).toEqual(verification)
+  })
+
+  it('reuses one generated key across retries', async () => {
+    const { client, calls } = mockClient([failure(503), ack()])
+    const result = client.contact.verifyEmail({ email: 'jane@example.com' })
+    await vi.runAllTimersAsync()
+    await result
+    expect(calls).toHaveLength(2)
+    expect(keyOf(calls[0])).toMatch(/^[0-9a-f-]{36}$/)
+    expect(keyOf(calls[1])).toBe(keyOf(calls[0]))
+  })
+
+  it('respects a caller key', async () => {
+    const { client, calls } = mockClient([ack()])
+    await client.contact.verifyEmail(
+      { email: 'jane@example.com' },
+      { idempotencyKey: 'caller-key' }
+    )
+    expect(keyOf(calls[0])).toBe('caller-key')
+  })
+})
+
 describe('other POST requests', () => {
   it.each([
     ['timeout before headers', () => () => new Promise<Response>(() => {}), APITimeoutError],
