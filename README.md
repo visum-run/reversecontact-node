@@ -82,6 +82,9 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | | `listAll` | An async iterator over every list (free) |
 | `client.lists.members` | `list`, `add`, `remove`, `listAll` | The members of a list |
 | `client.lists.operations` | `retrieve`, `cancel`, `wait` | The progress of an import operation |
+| `client.bulk` | `enrichPersons`, `list`, `listAll`, `retrieve`, `wait`, `cancel` | Bulk enrich jobs of up to 25,000 people, and their progress |
+| | `results` | The results file as text: CSV, or NDJSON with `{ format: 'ndjson' }` (free) |
+| | `rows`, `iterateRows` | The results a page or an item at a time, as they become ready (free) |
 
 Every method accepts request options as its last argument (see Configuration). Credit costs
 per endpoint are listed in the [API reference](https://docs.reversecontact.com/api-reference).
@@ -302,6 +305,35 @@ while `done`, `resume`, and `reconcile` return control to you. Inspect `stopReas
 When neither `pollAfterSeconds` nor `Retry-After` is supplied, polling waits 2 seconds.
 Its return value and `onPoll` callback both use the response envelope, with progress in `data`.
 The CSV export returns a string. Member removal sends its JSON body with DELETE.
+
+### Bulk enrich
+
+```ts
+const submitted = await client.bulk.enrichPersons({
+  items: [{ email: 'jane@example.com', externalId: 'crm-42' }],
+  families: ['profile']
+})
+const jobId = submitted.data.job.id
+
+// Each result in the order sent, as soon as it is ready, while the job runs.
+for await (const line of client.bulk.iterateRows(jobId)) {
+  console.log(line.row, line.status, line.person)
+}
+
+// Or the whole file once the job is completed or cancelled.
+await client.bulk.wait(jobId)
+const ndjson = await client.bulk.results(jobId, { format: 'ndjson' })
+```
+
+`bulk.rows(jobId, { cursor, limit })` reads one page of `JobResultLine` items (at most 100), with
+the job status in `extras.status`. While the job runs, a page stops at the first item not
+finished; `iterateRows` then waits `Retry-After` (2 seconds by default) and reads the same cursor
+again. It ends when `nextCursor` is null, or when the job is paused: read on later with `rows`.
+A cancelled job still finishes the items it had started, within the hour: `iterateRows` waits for
+them, while `results` already gives them with the status `running`.
+`results` returns the file as text, the CSV by default or one JSON object per line with
+`{ format: 'ndjson' }`. A job stored before these formats existed answers `ConflictError`
+(`JOB_RESULTS_FORMAT_UNAVAILABLE`); its CSV stays available.
 
 ## Configuration
 

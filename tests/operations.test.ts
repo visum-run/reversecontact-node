@@ -32,8 +32,8 @@ const operations = Object.entries(spec.paths).flatMap(([path, methods]) =>
 )
 
 describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
-  it('covers exactly all 39 snapshot operations', () => {
-    expect(operations).toHaveLength(39)
+  it('covers exactly all 40 snapshot operations', () => {
+    expect(operations).toHaveLength(40)
     expect(operations.map(({ operation }) => operation.operationId).sort()).toEqual(
       Object.keys(manifest.operations).sort()
     )

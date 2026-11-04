@@ -1,3 +1,4 @@
+import { sleep } from '../core/async'
 import { retryAfter } from '../core/errors'
 import type { IdempotentRequestOptions, RequestOptions, Transport } from '../core/http'
 import {
@@ -10,7 +11,7 @@ import {
 } from '../core/page'
 import { poll, retrievePoll, type WaitOptions } from '../core/poll'
 import { randomUUID } from '../core/uuid'
-import type { Body, BulkJob, Data, Query, Result } from '../types'
+import type { Body, BulkJob, Data, JobResultLine, Query, Result } from '../types'
 
 /** Bulk enrich people, and follow every background job of the workspace (`/v2/jobs`). */
 export class Bulk {
@@ -66,7 +67,10 @@ export class Bulk {
     )
   }
 
-  /** The results CSV as text, once the job is completed or cancelled (`links.results` is set). */
+  /**
+   * The results file as text, once the job is completed or cancelled (`links.results` is set):
+   * the CSV by default, or with `{ format: 'ndjson' }` one `JobResultLine` JSON object per line.
+   */
   results(
     jobId: string,
     params: Query<'getJobResults'> = {},
@@ -81,6 +85,52 @@ export class Bulk {
         true
       )
       .then(result => result.data)
+  }
+
+  /**
+   * One page of results, in the order sent, readable from the start of the run. While the job
+   * runs, a page stops at the first item not finished: `data` is empty and `nextCursor` is set
+   * while the next item runs (read it again after `Retry-After`). `nextCursor` is null once
+   * nothing more will come. `extras.status` is the job status when the page was read.
+   */
+  rows(
+    jobId: string,
+    params: Query<'getJobRows'> = {},
+    options?: RequestOptions
+  ): Promise<Page<PageItem<Data<'getJobRows'>>, Interpretation<Data<'getJobRows'>>>> {
+    return page<Data<'getJobRows'>>(
+      this.transport,
+      'GET',
+      `/v2/jobs/${encodeURIComponent(jobId)}/rows`,
+      params,
+      options
+    )
+  }
+
+  /**
+   * The results one item at a time, as they become ready, whatever the job is doing: it waits
+   * while the next item runs (`Retry-After`, 2 seconds by default) and reads the same position
+   * again. Ends with the job, or when it is paused, since nothing moves until someone resumes
+   * it: read on later with `rows` and the last cursor. A cancelled job still finishes the items
+   * it had started, within the hour: it waits for them too.
+   */
+  async *iterateRows(
+    jobId: string,
+    params: Query<'getJobRows'> = {},
+    options?: RequestOptions
+  ): AsyncGenerator<JobResultLine, void, unknown> {
+    let current = await this.rows(jobId, params, options)
+    while (true) {
+      yield* current.data
+      if (current.nextCursor === null) return
+      if (current.data.length === 0) {
+        if (current.extras.status === 'paused') return
+        await sleep((retryAfter(current.response.headers) ?? 2) * 1000, options?.signal)
+      }
+      const next = await current.getNextPage()
+      if (next === null) return
+      current = next
+    }
   }
 
   cancel(jobId: string, options?: RequestOptions): Promise<Result<Data<'cancelJob'>>> {

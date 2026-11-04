@@ -669,9 +669,29 @@ export interface paths {
         };
         /**
          * Get the results of a job
-         * @description The results CSV of an enrich_persons job, the file the dashboard downloads: one row per item, in the order sent. Your columns come first (linkedinUrl, email, firstName, lastName, companyDomain, companyName, externalId), then rc_status and rc_message (what happened, with the credits it cost), the finder columns the job asked for (rc_email, rc_phone and their status), and the rc_ person columns (only rc_linkedin_url when the job did not ask for the profile). The file exists once the job is completed or cancelled, when links.results is set: before, 409 JOB_RESULTS_NOT_READY. Credits: 0 (free).
+         * @description The results of an enrich_persons job, one per item, in the order sent, streamed. format=csv (default) is the file the dashboard downloads: your columns come first (linkedinUrl, email, firstName, lastName, companyDomain, companyName, externalId), then rc_status and rc_message (what happened, with the credits it cost), the finder columns the job asked for (rc_email, rc_phone and their status), and the rc_ person columns (only rc_linkedin_url when the job did not ask for the profile). format=ndjson (JSON Lines) gives one JobResultLine per line: the same outcome, typed, with the person in the /v2/enrich/persons shape. The file exists once the job is completed or cancelled, when links.results is set: before, 409 JOB_RESULTS_NOT_READY. A job stored before NDJSON existed has its CSV only: 409 JOB_RESULTS_FORMAT_UNAVAILABLE. A cancelled job still finishes the items it had started: each reads running until it ends, within the hour, and the file downloaded after that gives its outcome. Credits: 0 (free).
          */
         get: operations["getJobResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/jobs/{jobId}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the results of a job, a page at a time
+         * @description The results of an enrich_persons job in the order sent, one JobResultLine per item, as in the NDJSON file, readable from the start of the run. While the job runs, a page stops at the first item not finished: items is empty, with Retry-After, while the next one runs, and a cursor never skips an item. A cancelled job still finishes the items it had started, within the hour: a page waits for them the same way. Pass nextCursor back as cursor; it is null once nothing more will come. A page can hold fewer items than limit (at most 100, 2 MB of JSON). A cursor keeps working once the job settles. A job stored before reading by page existed: 409 JOB_RESULTS_FORMAT_UNAVAILABLE, its CSV stays available at /v2/jobs/{jobId}/results. Too many pages read at once: 429 JOB_ROWS_BUSY, retry after Retry-After. Credits: 0 (free).
+         */
+        get: operations["getJobRows"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1074,6 +1094,39 @@ export interface components {
             alternativePersons: (components["schemas"]["EnrichedPersonFull"] | components["schemas"]["EnrichedPersonLight"])[];
             /** @description True when data.person is the full profile, false when only the light shape could be returned. */
             isFullProfile: boolean;
+        };
+        /** @description One line of GET /v2/jobs/{jobId}/results?format=ndjson and one item of GET /v2/jobs/{jobId}/rows. */
+        JobResultLine: {
+            /** @description Position of the item in the job, from 1 (the order sent) */
+            row: number;
+            /** @description What was sent for this item, externalId included (empty fields left out) */
+            input: {
+                [key: string]: string;
+            };
+            /** @description What happened, as the rc_status column: enriched, partial, not_found, invalid_input, duplicate, insufficient_credits, skipped, data_subject_blocked, rate_limited, error or unknown. running: an item a cancelled job had started and not finished yet, which ends within the hour */
+            status: string;
+            /** @description The same text as the rc_message column, with the credits it cost */
+            message: string;
+            /** @description Credits this item cost */
+            creditsConsumed: number;
+            /** @description The person in the /v2/enrich/persons shape: the full profile (isFullProfile true) or the light shape. Null when none was found, or when the job did not ask for the profile. */
+            person: components["schemas"]["EnrichedPersonFull"] | components["schemas"]["EnrichedPersonLight"] | null;
+            /** @description True when person is the full profile */
+            isFullProfile: boolean;
+            /** @description The matched profile URL, present when the job did not ask for the profile */
+            linkedinUrl?: string;
+            /** @description Present when the job asked for contact_email */
+            contactEmail?: {
+                status: string | null;
+                value: string | null;
+                personalValue: string | null;
+            };
+            /** @description Present when the job asked for contact_phone */
+            contactPhone?: {
+                status: string | null;
+                value: string | null;
+                type: string | null;
+            };
         };
         /** @description Nested under the top-level V2 data field: response.data.company. */
         EnrichCompanyData: {
@@ -5930,7 +5983,7 @@ export interface operations {
                     name?: string;
                     /**
                      * Format: uri
-                     * @description Public HTTPS URL that receives one POST when the job settles: { event: job.updated, jobId, type, status, pollUrl, resultsUrl, occurredAt }. It carries no results.
+                     * @description Public HTTPS URL that receives one POST when the job settles: { event: job.updated, jobId, type, status, pollUrl, resultsUrl, occurredAt }. It carries no results. A failed POST (timeout, network error, 408, 429, 5xx) is retried for about 3 hours, so the same event can arrive twice: key it on jobId and status.
                      */
                     webhookUrl?: string;
                 };
@@ -6372,7 +6425,7 @@ export interface operations {
     getJobResults: {
         parameters: {
             query?: {
-                format?: "csv";
+                format?: "csv" | "ndjson";
             };
             header?: never;
             path: {
@@ -6382,13 +6435,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The results CSV, streamed (UTF-8 with a byte order mark) */
+            /** @description The results, streamed: a CSV (UTF-8 with a byte order mark), or NDJSON (one JobResultLine per line) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "text/csv": string;
+                    "application/x-ndjson": components["schemas"]["JobResultLine"];
                 };
             };
             /** @description Invalid JSON body or endpoint-specific business validation */
@@ -6436,7 +6490,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description JOB_RESULTS_NOT_READY: the job is queued, running or paused (the file is ready once it is completed or cancelled), or failed (no file) */
+            /** @description JOB_RESULTS_NOT_READY: the job is queued, running or paused (the file is ready once it is completed or cancelled), or failed (no file). JOB_RESULTS_FORMAT_UNAVAILABLE: the job was stored before NDJSON existed, its CSV stays available */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6457,6 +6511,127 @@ export interface operations {
             /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
             429: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getJobRows: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of results */
+            200: {
+                headers: {
+                    /** @description Set when items is empty while nextCursor is not: the next item is still running, read again after this many seconds */
+                    "Retry-After"?: 2;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description The items of this page, in the order sent */
+                            items: components["schemas"]["JobResultLine"][];
+                            nextCursor: string | null;
+                            /**
+                             * @description The job status when the page was read
+                             * @enum {string}
+                             */
+                            status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description JOB_RESULTS_FORMAT_UNAVAILABLE: the job was stored before reading by page existed, its CSV stays available */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description JOB_ROWS_BUSY: too many pages read at once on the server. Or the rate limit, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait Retry-After (error.details.retryAfter) seconds, then retry. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before reading again */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

@@ -98,3 +98,7 @@ export type ListMember = Data<'listListMembers'>['items'][number]
 export type ListOperation = Data<'getListOperation'>
 export type BulkJob = Data<'getJob'>
 export type BulkEnrichPersonsParams = Body<'bulkEnrichPersons'>
+/** One item of a Bulk enrich job's results: a line of the NDJSON file, an item of `bulk.rows`. */
+export type JobResultLine = components['schemas']['JobResultLine']
+/** One page of `bulk.rows`: `items`, `nextCursor`, and the job `status` when it was read. */
+export type BulkJobRows = Data<'getJobRows'>

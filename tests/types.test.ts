@@ -1,10 +1,12 @@
 import { expectTypeOf, it } from 'vitest'
 import type ReverseContact from '../src'
 import type {
+  BulkJobRows,
   Company,
   ContactValue,
   Data,
   Job,
+  JobResultLine,
   JobSnapshot,
   ListOperation,
   Person,
@@ -48,4 +50,13 @@ it('keeps generated response shapes and nullable lookups in the public API', () 
     Result<JobSnapshot<Person>>
   >()
   expectTypeOf<ReturnType<ReverseContact['withOptions']>>().toEqualTypeOf<ReverseContact>()
+  type RowsPage = Awaited<ReturnType<ReverseContact['bulk']['rows']>>
+  expectTypeOf<RowsPage['data']>().toEqualTypeOf<JobResultLine[]>()
+  expectTypeOf<BulkJobRows['items']>().toEqualTypeOf<JobResultLine[]>()
+  expectTypeOf<ReturnType<ReverseContact['bulk']['iterateRows']>>().toEqualTypeOf<
+    AsyncGenerator<JobResultLine, void, unknown>
+  >()
+  expectTypeOf<Parameters<ReverseContact['bulk']['results']>[1]>().toEqualTypeOf<
+    { format?: 'csv' | 'ndjson' } | undefined
+  >()
 })
