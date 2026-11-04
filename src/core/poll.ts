@@ -18,6 +18,7 @@ export function retrievePoll<T>(
       ...options,
       timeout: Math.max(options.timeout ?? transport.timeout, ((params.wait ?? 0) + 15) * 1000)
     },
+    false,
     deadline
   )
 }
@@ -33,7 +34,8 @@ export async function poll<T extends { status: string }>(
   id: string,
   retrieve: (wait: number, options: RequestOptions, deadline: number) => Promise<Result<T>>,
   decide: (snapshot: Result<T>) => number | null,
-  options: WaitOptions<T> = {}
+  options: WaitOptions<T> = {},
+  spacing: 'start' | 'response' = 'start'
 ): Promise<Result<T>> {
   const wait = options.pollWait ?? 20
   if (!Number.isInteger(wait) || wait < 0 || wait > 20)
@@ -59,7 +61,7 @@ export async function poll<T extends { status: string }>(
         const delay = decide(snapshot)
         if (delay === null) return snapshot
         const lastAttemptStart = requestStartedAt(snapshot.response) ?? started
-        const elapsed = Date.now() - lastAttemptStart
+        const elapsed = spacing === 'start' ? Date.now() - lastAttemptStart : 0
         await sleep(Math.max(0, delay * 1000 - elapsed), signal)
       }
     },

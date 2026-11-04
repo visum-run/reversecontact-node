@@ -20,11 +20,28 @@ it('generates replay-safe UUIDs with the standard Web Crypto API', async () => {
     )
 })
 
+it('generates Lists replay-safe UUIDs with the standard Web Crypto API', async () => {
+  const { client, calls } = mockClient([ok(), ok()])
+  await client.lists.create({ name: 'Test', entity: 'persons' })
+  await client.lists.importSignals('list', { signals: [] })
+  expect(new Headers(calls[0]?.init.headers).get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/)
+  expect(JSON.parse(String(calls[1]?.init.body)).operationId).toMatch(/^[0-9a-f-]{36}$/)
+})
+
 it('uses web primitives without Node globals in an edge runtime', async () => {
   vi.stubGlobal('process', undefined)
   const { client, calls } = mockClient([ok(), ack()], { apiKey: 'edge-key' })
   await client.usage.retrieve()
   await client.contact.findEmail(params)
+  expect(new Headers(calls[0]?.init.headers).get('user-agent')).toContain('(edge/unknown; unknown)')
+  expect(new Headers(calls[1]?.init.headers).get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/)
+})
+
+it('creates a List idempotency key without Node globals in an edge runtime', async () => {
+  vi.stubGlobal('process', undefined)
+  const { client, calls } = mockClient([ok(), ok()], { apiKey: 'edge-key' })
+  await client.usage.retrieve()
+  await client.lists.create({ name: 'Test', entity: 'persons' })
   expect(new Headers(calls[0]?.init.headers).get('user-agent')).toContain('(edge/unknown; unknown)')
   expect(new Headers(calls[1]?.init.headers).get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/)
 })
@@ -54,7 +71,14 @@ it('can use explicit replay identifiers without Web Crypto or Node', async () =>
   expect(new Headers(calls[1]?.init.headers).get('Idempotency-Key')).toBe('explicit-header')
 })
 
-it('exposes only the production resources', () => {
-  const { client } = mockClient([])
-  expect(client).not.toHaveProperty('lists')
+it('can use explicit Lists replay identifiers without Web Crypto or Node', async () => {
+  vi.stubGlobal('process', undefined)
+  vi.stubGlobal('crypto', undefined)
+  const { client, calls } = mockClient([ok(), ok()])
+  await client.lists.create({ name: 'Test', entity: 'persons' }, { idempotencyKey: 'explicit-key' })
+  await client.lists.importSignals('list', { operationId: 'explicit-id' })
+  await expect(client.lists.create({ name: 'Test', entity: 'persons' })).rejects.toBeInstanceOf(
+    ReverseContactError
+  )
+  expect(calls).toHaveLength(2)
 })

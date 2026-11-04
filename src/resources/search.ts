@@ -141,7 +141,14 @@ export class Search {
     params: IteratorParams<Body<'searchPeople'>>,
     options: SearchIteratorOptions
   ): AsyncGenerator<PageItem<Data<'searchPeople'>>, void, unknown> {
-    return iterate(request => this.people(request, options), params, options?.maxResults, 25, 100)
+    return iterate(
+      request => this.people(request, options),
+      params,
+      options?.maxResults,
+      25,
+      100,
+      true
+    )
   }
 
   iterPeopleByPrompt(
@@ -153,7 +160,8 @@ export class Search {
       params,
       options?.maxResults,
       25,
-      100
+      100,
+      true
     )
   }
 
@@ -166,7 +174,8 @@ export class Search {
       params,
       options?.maxResults,
       25,
-      100
+      100,
+      true
     )
   }
 
@@ -179,7 +188,8 @@ export class Search {
       params,
       options?.maxResults,
       25,
-      100
+      100,
+      true
     )
   }
 
@@ -192,7 +202,8 @@ export class Search {
       params,
       options?.maxResults,
       25,
-      100
+      100,
+      true
     )
   }
 }

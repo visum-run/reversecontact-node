@@ -2,7 +2,11 @@ import type { Metadata, Quotas, Result } from '../types'
 import { ReverseContactError, record } from './errors'
 import type { RequestOptions, Transport } from './http'
 
-export type PageItem<D> = D extends { data: (infer T)[] } ? T : never
+export type PageItem<D> = D extends { data: (infer T)[] }
+  ? T
+  : D extends { items: (infer T)[] }
+    ? T
+    : never
 export type Interpretation<D> = D extends { interpretation: infer I } ? I : undefined
 export class Page<T, I = undefined> implements Iterable<T> {
   readonly data: T[]
@@ -14,14 +18,16 @@ export class Page<T, I = undefined> implements Iterable<T> {
   readonly perPage?: number
   readonly interpretation: I
   readonly extras: Record<string, unknown>
+  readonly memberCount?: number
+  readonly pendingIntakeCount?: number
 
   constructor(
     result: Result<unknown>,
     private readonly next: (cursor: string, options?: RequestOptions) => Promise<Page<T, I>>
   ) {
     const payload = record(result.data)
-    const pagination = record(payload.metadata)
-    this.data = payload.data as T[]
+    const pagination = Array.isArray(payload.data) ? record(payload.metadata) : payload
+    this.data = (payload.data ?? payload.items) as T[]
     if (!Array.isArray(this.data))
       throw new ReverseContactError('The response does not contain a page of items')
     this.nextCursor = typeof pagination.nextCursor === 'string' ? pagination.nextCursor : null
@@ -29,8 +35,13 @@ export class Page<T, I = undefined> implements Iterable<T> {
     this.perPage = typeof pagination.perPage === 'number' ? pagination.perPage : undefined
     this.interpretation = payload.interpretation as I
     this.extras = Object.fromEntries(
-      Object.entries(payload).filter(([key]) => !['data', 'metadata'].includes(key))
+      Object.entries(payload).filter(
+        ([key]) => !['data', 'items', 'nextCursor', 'metadata'].includes(key)
+      )
     )
+    this.memberCount = typeof payload.memberCount === 'number' ? payload.memberCount : undefined
+    this.pendingIntakeCount =
+      typeof payload.pendingIntakeCount === 'number' ? payload.pendingIntakeCount : undefined
     this.quotas = result.quotas
     this.metadata = result.metadata
     this.response = result.response
@@ -68,6 +79,9 @@ export function page<D>(
 export interface SearchIteratorOptions extends RequestOptions {
   maxResults: number
 }
+export interface ListIteratorOptions extends RequestOptions {
+  maxResults?: number
+}
 
 // Capture the JSON parameters eagerly, before callers can mutate nested filters.
 function snapshot<T>(params: T): T {
@@ -79,26 +93,31 @@ export function iterate<T, P extends { perPage?: number; cursor?: string }>(
   params: P,
   maxResults: number | undefined,
   pageSize: number,
-  maximum: number
+  maximum: number,
+  required: boolean
 ): AsyncGenerator<T, void, unknown> {
   const perPage = params.perPage ?? pageSize
   if (!Number.isInteger(perPage) || perPage < 1 || perPage > maximum)
     throw new ReverseContactError(`perPage must be an integer from 1 to ${maximum}`)
-  return iteratePages(load, snapshot(params), maxResults, perPage)
+  return iteratePages(load, snapshot(params), maxResults, perPage, required)
 }
 
 async function* iteratePages<T, P extends { perPage?: number; cursor?: string }>(
   load: (params: P & { perPage: number; cursor?: string }) => Promise<Page<T, unknown>>,
   params: P,
   maxResults: number | undefined,
-  perPage: number
+  perPage: number,
+  required: boolean
 ): AsyncGenerator<T, void, unknown> {
-  if (maxResults === undefined || !Number.isSafeInteger(maxResults) || maxResults < 0) {
+  if (
+    (required && maxResults === undefined) ||
+    (maxResults !== undefined && (!Number.isSafeInteger(maxResults) || maxResults < 0))
+  ) {
     throw new ReverseContactError(
       'maxResults must be a nonnegative safe integer; it is required for search iterators'
     )
   }
-  let remaining = maxResults
+  let remaining = maxResults ?? Infinity
   let cursor = params.cursor
   const seen = new Set<string>()
   if (cursor) seen.add(cursor)

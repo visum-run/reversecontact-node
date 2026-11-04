@@ -1,8 +1,10 @@
 import { type ClientOptions, Transport } from './core/http'
+import { Bulk } from './resources/bulk'
 import { Contact } from './resources/contact'
 import { Enrich } from './resources/enrich'
 import { Fetch } from './resources/fetch'
 import { Jobs } from './resources/jobs'
+import { Lists } from './resources/lists'
 import { Search } from './resources/search'
 import { Usage } from './resources/usage'
 
@@ -13,6 +15,8 @@ export class ReverseContact {
   readonly contact: Contact
   readonly jobs: Jobs
   readonly usage: Usage
+  readonly lists: Lists
+  readonly bulk: Bulk
   private readonly transport: Transport
 
   constructor(options: ClientOptions = {}) {
@@ -24,6 +28,8 @@ export class ReverseContact {
     this.contact = new Contact(transport)
     this.jobs = new Jobs(transport)
     this.usage = new Usage(transport)
+    this.lists = new Lists(transport)
+    this.bulk = new Bulk(transport)
   }
 
   withOptions(options: ClientOptions): ReverseContact {

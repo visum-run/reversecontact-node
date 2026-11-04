@@ -139,18 +139,18 @@ describe('client copies and logging', () => {
     const { client } = mockClient([broken(401, { 'X-Request-ID': 'req_broken' })], {
       logLevel: 'debug'
     })
-    await expect(client.jobs.retrieve('id', { wait: 7 })).rejects.toMatchObject({
+    await expect(client.lists.list({ cursor: 'private-cursor' })).rejects.toMatchObject({
       status: 401
     })
     expect(log).toHaveBeenCalledWith('[ReverseContact]', {
       method: 'GET',
-      path: '/v2/webhooks/id',
+      path: '/v2/lists',
       status: 401,
       attempt: 1,
       delay: 0,
       requestId: 'req_broken'
     })
-    expect(JSON.stringify(log.mock.calls)).not.toContain('wait=7')
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-cursor')
   })
   it('shares fetch and snapshots options while keeping overrides isolated', async () => {
     const defaults = { 'X-Default': 'original', 'X-Request-Origin': 'forbidden' }

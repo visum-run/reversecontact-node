@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 (2026-11-04)
+
+- `lists` manages your saved lists: `list`, `listAll`, `create`, `retrieve`, `delete`, `export` (CSV) and `importSignals`.
+- `lists.members` reads, adds and removes the members of a list: `list`, `listAll`, `add` and `remove`.
+- `lists.operations` follows an import: `retrieve`, `cancel` and `wait`.
+- `bulk.enrichPersons` starts a Bulk enrich job of up to 25,000 people. `bulk.list`, `bulk.listAll`, `bulk.retrieve`, `bulk.wait`, `bulk.results` (CSV) and `bulk.cancel` list, follow, download and stop these jobs.
+
 ## 0.1.8 (2026-11-03)
 
 - `search.peopleAutoSuggestion` returns the skills that start with what someone has typed, most common first, to build a search box in your own product. Free.
@@ -39,7 +46,7 @@
 First npm release. Version 0.1.0 was tagged but never published.
 
 - Initial official Reverse Contact TypeScript and JavaScript SDK.
-- All 21 production V2 snapshot operations.
+- All 32 public V2 snapshot operations, including Lists.
 - Typed results, quota metadata, HTTP errors, retries and cancellation.
 - Generic job handles, resumable waiting and webhook delivery parsing.
 - Cursor pages and search iterators with a required result budget.

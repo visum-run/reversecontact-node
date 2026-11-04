@@ -6,6 +6,7 @@ import type {
   Data,
   Job,
   JobSnapshot,
+  ListOperation,
   Person,
   Quotas,
   Result,
@@ -35,6 +36,13 @@ it('keeps generated response shapes and nullable lookups in the public API', () 
   expectTypeOf<Quotas['key']>().toBeNullable()
   expectTypeOf<SearchPeopleParams>().not.toBeAny()
   expectTypeOf<SearchPeopleParams['perPage']>().toEqualTypeOf<number | undefined>()
+  type MemberPage = Awaited<ReturnType<ReverseContact['lists']['members']['list']>>
+  expectTypeOf<MemberPage['memberCount']>().toEqualTypeOf<number | undefined>()
+  expectTypeOf<MemberPage['pendingIntakeCount']>().toEqualTypeOf<number | undefined>()
+  expectTypeOf<MemberPage['extras']>().toEqualTypeOf<Record<string, unknown>>()
+  expectTypeOf<Awaited<ReturnType<ReverseContact['lists']['operations']['wait']>>>().toEqualTypeOf<
+    Result<ListOperation>
+  >()
   expectTypeOf<Job<ContactValue[]>['replayed']>().toEqualTypeOf<boolean>()
   expectTypeOf<Awaited<ReturnType<Job<Person>['wait']>>>().toEqualTypeOf<
     Result<JobSnapshot<Person>>

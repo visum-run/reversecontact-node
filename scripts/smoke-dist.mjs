@@ -28,11 +28,25 @@ for (const Client of [ReverseContact, cjs.ReverseContact]) {
           /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
         )
         data = { webhookId: 'smoke-email', status: 'created', pollUrl: '/v2/webhooks/smoke-email' }
-      } else {
+      } else if (calls === 3) {
         assert.equal(String(input), 'https://api.reversecontact.com/v2/contact/phone')
         assert.equal(init.method, 'POST')
         assert.equal(new Headers(init.headers).get('Idempotency-Key'), 'smoke-key')
         data = { webhookId: 'smoke-phone', status: 'created', pollUrl: '/v2/webhooks/smoke-phone' }
+      } else if (calls === 4) {
+        assert.equal(String(input), 'https://api.reversecontact.com/v2/lists')
+        assert.equal(init.method, 'POST')
+        assert.match(new Headers(init.headers).get('Idempotency-Key'), /^[0-9a-f-]{36}$/)
+        data = { id: 'smoke-list' }
+      } else {
+        assert.equal(
+          String(input),
+          'https://api.reversecontact.com/v2/lists/smoke-list/intake/signals'
+        )
+        assert.equal(init.method, 'POST')
+        const body = JSON.parse(init.body)
+        assert.match(body.operationId, /^[0-9a-f-]{36}$/)
+        data = { operationId: body.operationId }
       }
       return new Response(
         JSON.stringify({
@@ -66,5 +80,12 @@ for (const Client of [ReverseContact, cjs.ReverseContact]) {
   assert.equal(phone.replayed, true)
   assert.equal(phone.response.headers.get('Idempotent-Replayed'), 'true')
   assert.equal(calls, 3)
+  const list = await client.lists.create({ name: 'Smoke', entity: 'persons' })
+  assert.equal(list.data.id, 'smoke-list')
+  const imported = await client.lists.importSignals(list.data.id, {
+    signals: [{ email: 'jane@example.com' }]
+  })
+  assert.match(imported.data.operationId, /^[0-9a-f-]{36}$/)
+  assert.equal(calls, 5)
 }
 console.log('ESM import and CJS require smoke tests passed')

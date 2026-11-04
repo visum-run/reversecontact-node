@@ -22,7 +22,7 @@ export {
 } from './core/errors'
 export type { ClientOptions, Fetch, IdempotentRequestOptions, RequestOptions } from './core/http'
 export { Job } from './core/job'
-export { Page, type SearchIteratorOptions } from './core/page'
+export { type ListIteratorOptions, Page, type SearchIteratorOptions } from './core/page'
 export type { WaitOptions } from './core/poll'
 export { parseWebhookDelivery, type WebhookDelivery } from './core/webhook'
 export * from './generated/catalogs'

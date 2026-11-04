@@ -34,3 +34,7 @@ const job = await copy.contact.findEmail(
 )
 const replayed: boolean = job.replayed
 void [result, extras, replayed]
+const members = await copy.lists.members.list('id')
+const count: number | undefined = members.memberCount
+const memberExtras: Record<string, unknown> = members.extras
+void [count, memberExtras]

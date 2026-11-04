@@ -214,6 +214,7 @@ export class Transport {
     path: string,
     params: unknown,
     options: IdempotentRequestOptions = {},
+    text = false,
     deadline?: number
   ): Promise<Result<T>> {
     const retries = options.maxRetries ?? this.maxRetries
@@ -276,15 +277,18 @@ export class Transport {
             }
             let parsed: unknown = raw
             let isJSON = false
-            try {
-              parsed = JSON.parse(raw)
-              isJSON = true
-            } catch {
-              /* Handled using the HTTP status below. */
+            if (!text || !succeeded) {
+              try {
+                parsed = JSON.parse(raw)
+                isJSON = true
+              } catch {
+                /* Handled using the HTTP status below. */
+              }
             }
             const metadataId = record(record(parsed).metadata).requestId
             if (typeof metadataId === 'string') requestId = metadataId
             if (!succeeded) throw apiError(response, parsed, isJSON)
+            if (text) return { data: raw as T, response }
             const envelope = record(parsed)
             if (!isJSON || !Object.hasOwn(envelope, 'data'))
               throw new ReverseContactError('The successful response is not a JSON envelope')

@@ -82,6 +82,8 @@ describe.skipIf(!hasSnapshot)('documented request validity', () => {
         const filters = Object.keys(body).filter(key => key !== 'perPage' && key !== 'cursor')
         expect(filters.length, `${operation.operationId} needs a filter`).toBeGreaterThan(0)
       }
+      if (operation.operationId === 'createList')
+        expect(record(properties.entity).enum).toContain(body.entity)
       for (const [name, value] of url.searchParams) {
         const parameter = operation.parameters?.find(
           parameter => parameter.in === 'query' && parameter.name === name
@@ -100,10 +102,13 @@ describe.skipIf(!hasSnapshot)('documented request validity', () => {
       if (id === 'fetchPerson') return failure(404, 'PERSON_NOT_FOUND')
       if (id === 'enrichPerson') return ok({ person: { id: 'person' }, isFullProfile: true })
       if (id === 'pollWebhook') return job('succeeded', { result: [] })
+      if (id === 'getListOperation') return ok({ status: 'completed', clientAction: 'done' })
+      if (id === 'exportList') return new Response('id,name\n')
       if (id.startsWith('live') || id.startsWith('findContact'))
         return ok({ webhookId: 'job', status: 'created', pollUrl: '/v2/webhooks/job' })
       if (id.startsWith('search') && !id.endsWith('AvailableFields')) return searchPage(0)
-      return ok({ count: 0 })
+      if (id === 'listLists' || id === 'listListMembers') return ok({ items: [], nextCursor: null })
+      return ok({ id: 'list', operationId: 'operation', count: 0 })
     })
     class ExampleClient extends sdk.ReverseContact {
       constructor(options: sdk.ClientOptions = {}) {

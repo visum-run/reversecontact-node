@@ -8,7 +8,7 @@ Reverse Contact is a B2B data API: enrich people and companies, fetch profiles, 
 and organizations, and find email addresses and phone numbers.
 
 This is the official TypeScript and JavaScript client for the Reverse Contact V2 API: typed
-results, automatic retries, cursor pagination and asynchronous jobs, with no runtime dependencies.
+results, automatic retries, cursor pagination, asynchronous jobs and Lists, with no runtime dependencies.
 
 [Documentation](https://docs.reversecontact.com/sdk/javascript) ·
 [API reference](https://docs.reversecontact.com/api-reference) ·
@@ -78,6 +78,10 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Job` that finds email addresses or phone numbers, or checks an email address |
 | `client.jobs` | `retrieve`, `wait` | One job snapshot, or the final job result |
 | `client.usage` | `retrieve` | Credit balance and rate limits, in `quotas` (free) |
+| `client.lists` | `list`, `create`, `retrieve`, `delete`, `export`, `importSignals` | Saved lists, their CSV export, and import operations |
+| | `listAll` | An async iterator over every list (free) |
+| `client.lists.members` | `list`, `add`, `remove`, `listAll` | The members of a list |
+| `client.lists.operations` | `retrieve`, `cancel`, `wait` | The progress of an import operation |
 
 Every method accepts request options as its last argument (see Configuration). Credit costs
 per endpoint are listed in the [API reference](https://docs.reversecontact.com/api-reference).
@@ -255,6 +259,50 @@ Usage has `data: null`; balance and limit information lives in `quotas`.
 Quota values can be `null` when no snapshot is available, and `quotas.key` can be null.
 `null`, `0`, and an empty array retain their distinct meanings.
 
+### Lists, members, and import operations
+
+```ts
+const created = await client.lists.create({ name: 'Prospects', entity: 'persons' }, {
+  idempotencyKey: 'prospects-import-2026-10-28'
+})
+const listId = created.data.id
+const firstPage = await client.lists.list({ perPage: 20 })
+const detail = await client.lists.retrieve(listId, { perPage: 100, kind: 'all' })
+console.log(detail.data.members, detail.data.nextCursor)
+
+await client.lists.members.add(listId, { signals: [{ email: 'jane@example.com' }] })
+const members = await client.lists.members.list(listId, { kind: 'members' })
+console.log(members.memberCount, members.pendingIntakeCount)
+for await (const member of client.lists.members.listAll(listId)) console.log(member)
+for await (const list of client.lists.listAll()) console.log(list.name)
+
+const imported = await client.lists.importSignals(listId, {
+  signals: [{ email: 'another@example.com' }],
+  maxCredits: 10
+})
+const operationId = imported.data.operationId
+const progress = await client.lists.operations.retrieve(listId, operationId, { rows: 'true', wait: 20 })
+const stopped = await client.lists.operations.wait(listId, operationId)
+console.log(stopped.data.clientAction, stopped.data.nextStep)
+// If needed: await client.lists.operations.cancel(listId, operationId)
+
+const csv = await client.lists.export(listId)
+// Removal is explicit and supports both memberIds and pendingIds:
+// await client.lists.members.remove(listId, { memberIds: ['member-id'] })
+// await client.lists.delete(listId)
+```
+
+`lists.create` automatically generates an `Idempotency-Key` if one is not provided.
+The key is reused across retries. `importSignals` similarly generates one `operationId`
+per call when omitted. Supply your own stable values when resuming after a process restart.
+
+`lists.operations.wait` follows `clientAction`: `poll` waits the indicated interval,
+while `done`, `resume`, and `reconcile` return control to you. Inspect `stopReason` and
+`nextStep`; the SDK never replays an operation that needs reconciliation.
+When neither `pollAfterSeconds` nor `Retry-After` is supplied, polling waits 2 seconds.
+Its return value and `onPoll` callback both use the response envelope, with progress in `data`.
+The CSV export returns a string. Member removal sends its JSON body with DELETE.
+
 ## Configuration
 
 ```ts
@@ -320,7 +368,8 @@ Page methods return a `Page` with:
 - `nextCursor`, `hasNextPage()`, and `await getNextPage()`.
 - `quotas`, top-level request `metadata`, and the original HTTP `response`.
 - `count` and `perPage` when present, plus typed `interpretation` on prompt searches.
-- `extras` for payload fields other than the items and pagination metadata.
+- `memberCount` and `pendingIntakeCount` on member pages, plus `extras` for every payload
+  field other than the items, cursor, and pagination metadata.
 
 `getNextPage()` preserves the original filters and request options and returns `null`
 when there is no next cursor. An explicit page request can spend credits; the search
@@ -329,6 +378,10 @@ Search `perPage` is an integer from 1 through 100.
 Pages and iterators snapshot filters, including nested objects, at creation. Later changes
 to your input object cannot alter subsequent requests. Iterators reject invalid budgets
 and page sizes before fetching and stop with an error if the API repeats a cursor.
+
+The free `lists.listAll` and `lists.members.listAll` iterators do not require a maximum.
+You may still supply `{ maxResults: 50 }` as their last argument.
+Their default page sizes are 200 and 100 respectively.
 
 ## Jobs, deadlines, and cancellation
 
@@ -458,7 +511,7 @@ See the [webhooks guide](https://docs.reversecontact.com/guides/webhooks).
 
 Types are generated from the Reverse Contact OpenAPI description. Public aliases include
 `Person`, `Company`, `EnrichPersonParams`, `SearchPeopleParams`, `SearchOrganizationsParams`,
-`JobStatus`, `JobSnapshot<T>`, `Usage`, `Quotas`, and `Metadata`.
+`JobStatus`, `JobSnapshot<T>`, `Usage`, `List`, `ListMember`, `ListOperation`, `Quotas`, and `Metadata`.
 Use `Body<'operationId'>`, `Query<'operationId'>`, `Data<'operationId'>`, or the exported
 `components`, `operations`, and `paths` types for the complete schema surface.
 Quota types model runtime nullable fields independently of the schema. Response parsing
@@ -530,7 +583,7 @@ bun run check:consumer
 node scripts/smoke-dist.mjs
 ```
 
-The build toolchain uses Node.js 24 and Bun 1.3.14. Runtime CI covers Node.js 22, 24, and 26.
+The build toolchain uses Node.js 24 and Bun 1.4.4. Runtime CI covers Node.js 22, 24, and 26.
 Types are generated from the API's OpenAPI description and committed. The generator and the
 tests that compare the SDK with that description need input files this repository does not
 include: they skip with an explicit reason, and every other check runs here.

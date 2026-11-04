@@ -206,7 +206,7 @@ describe('retry and timeout policy', () => {
     ['fallback', failure(429), 2000],
     ['zero seconds', failure(429, 'REQUEST_ERROR', { retryAfter: 0 }), 0],
     ['5xx header', failure(503, 'SERVICE_UNAVAILABLE', undefined, { 'Retry-After': '3' }), 3000],
-    ['5xx details', failure(503, 'SERVICE_UNAVAILABLE', { retryAfterSeconds: 5 }), 5000]
+    ['Lists preparing', failure(503, 'LISTS_PREPARING', { retryAfterSeconds: 5 }), 5000]
   ])('retries using %s', async (_, response, delay) => {
     const { client, calls } = mockClient([response, ok()])
     const result = client.usage.retrieve()

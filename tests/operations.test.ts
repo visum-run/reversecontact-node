@@ -32,8 +32,8 @@ const operations = Object.entries(spec.paths).flatMap(([path, methods]) =>
 )
 
 describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
-  it('covers exactly all 23 snapshot operations', () => {
-    expect(operations).toHaveLength(23)
+  it('covers exactly all 39 snapshot operations', () => {
+    expect(operations).toHaveLength(39)
     expect(operations.map(({ operation }) => operation.operationId).sort()).toEqual(
       Object.keys(manifest.operations).sort()
     )
@@ -45,11 +45,15 @@ describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
       expect(entry).toBeDefined()
       if (!entry) throw new Error('Missing operation map')
       const fixture =
-        entry.kind === 'page'
-          ? searchPage(1)
-          : entry.kind === 'job'
-            ? ok({ webhookId: 'job-id', status: 'created', pollUrl: '/v2/webhooks/job-id' })
-            : ok({ marker: id })
+        entry.kind === 'text'
+          ? new Response('id,name\n1,Jane\n', { headers: { 'Content-Type': 'text/csv' } })
+          : entry.kind === 'page'
+            ? path.startsWith('/v2/search')
+              ? searchPage(1)
+              : ok({ items: [{ id: 'item' }], nextCursor: null })
+            : entry.kind === 'job'
+              ? ok({ webhookId: 'job-id', status: 'created', pollUrl: '/v2/webhooks/job-id' })
+              : ok({ marker: id })
       const { client, calls } = mockClient([fixture])
       const parts = entry.ts.split('.')
       let owner: unknown = client
@@ -72,6 +76,7 @@ describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
       }
       const body = {
         url: 'https://social.com/in/janedoe',
+        operationId: 'op-id',
         sample: { nested: null },
         enabled: false,
         values: []
@@ -93,6 +98,7 @@ describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
       expect(new Headers(call?.init.headers).get('X-Test')).toBe('all-methods')
       if (entry.kind === 'job') expect(result).toBeInstanceOf(Job)
       else if (entry.kind === 'page') expect(result).toBeInstanceOf(Page)
+      else if (entry.kind === 'text') expect(result).toBe('id,name\n1,Jane\n')
       else expect(record(result).data).toEqual({ marker: id })
     })
   }

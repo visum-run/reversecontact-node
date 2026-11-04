@@ -93,3 +93,8 @@ export type JobSnapshot<T = unknown> = Omit<components['schemas']['PollWebhookDa
 export type ContactValue = { value: string; type: string }
 export type EmailVerification = components['schemas']['ContactEmailVerifyResult']
 export type Usage = Result<null>
+export type List = Data<'createList'>
+export type ListMember = Data<'listListMembers'>['items'][number]
+export type ListOperation = Data<'getListOperation'>
+export type BulkJob = Data<'getJob'>
+export type BulkEnrichPersonsParams = Body<'bulkEnrichPersons'>

@@ -55,7 +55,7 @@ export interface paths {
         put?: never;
         /**
          * Search people
-         * @description Search the Reverse Contact database for people matching filters (AND-combined) and return full profiles. Pass metadata.nextCursor back as cursor for the next page. perPage defaults to 25 and is capped at 100. Results are at data.data and cursor metadata at data.metadata. Filters are strictly validated: unknown fields, blank values and values outside a closed vocabulary return 422 with the offending field and suggestions, and cost 0 credits. Credits: 1 per profile delivered. A page with no profile costs 0.
+         * @description Search the Reverse Contact database for people matching filters (AND-combined) and return full profiles. Pass metadata.nextCursor back as cursor for the next page. perPage defaults to 25 and is capped at 100. Results are at data.data and cursor metadata at data.metadata. Filters are strictly validated: unknown fields, blank values and values outside a closed vocabulary return 422 with the offending field and suggestions, and cost 0 credits. Credits: 1 per profile delivered after privacy filtering. Zero results are free.
          */
         post: operations["searchPeople"];
         delete?: never;
@@ -438,6 +438,262 @@ export interface paths {
         get: operations["pollWebhook"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Lists
+         * @description Returns the workspace Lists with their member and Pending Intake counts, newest first. A page holds 200 Lists by default, the most a workspace can have; pass nextCursor back as cursor for the next page. Credits: 0.
+         */
+        get: operations["listLists"];
+        put?: never;
+        /**
+         * Create a List
+         * @description Creates a people or companies List (never mixed; 200 Lists per workspace, 1 on a trial). Send an Idempotency-Key header to retry safely: the same key returns the List the first request created instead of a second "Name (2)". Credits: 0.
+         */
+        post: operations["createList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a List
+         * @description Returns the List and one page of its rows: List Members (kind member) and Not found lines kept as Pending Intake (kind pending), ordered by added date. Pass nextCursor back as cursor, with the same kind, for the next page; a malformed cursor, or one sent with other filters, is refused with 400. Credits: 0.
+         */
+        get: operations["getList"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a List
+         * @description Deletes the List, its members, their stored data and its Pending Intake. Credits: 0.
+         */
+        delete: operations["deleteList"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List members
+         * @description Returns one page of List rows. Each row has kind member or pending (a Not found line kept as Pending Intake). Use kind=members for List Members only, kind=pending for Pending Intake only, or kind=all to mix both by added date. Pass nextCursor back as cursor, with the same filters, for the next page. With externalId, returns the members carrying that identifier of yours, paged the same way. Credits: 0.
+         */
+        get: operations["listListMembers"];
+        put?: never;
+        /**
+         * Add members
+         * @description Adds up to 1,000 Signals and answers when they are done, with one result per Signal in request order (results[]: added, already_present, not_found, refused, failed, not_reached). A person is found from a Social URL, an email, or a first and last name with a company. A new member is charged its identity price: 1 credit for a Social URL from saved data (2 with live: true), 2 for an email or a name. A member already on the List is free and left as it is; a Signal no one matches is kept as Pending Intake, free. One invalid Signal refuses the request with details.signalIndex. For more Signals, data families, a credit ceiling or a webhook, use the import (intake/signals).
+         */
+        post: operations["addListMembers"];
+        /**
+         * Remove List members
+         * @description Removes List Members and their stored data, and/or dismisses Pending Intake rows. Removing members never dismisses Pending Intake unless pendingIds are given. Credits: 0.
+         */
+        delete: operations["removeListMembers"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}/intake/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import members and data
+         * @description Queues up to 25,000 Signals (or a public CSV / Google Sheet URL) as one operation and answers at once with operationId and pollUrl. Each line is identified like an add (saved data unless live: true); with families, the data you ask for (profile, company, contact_email, contact_phone) is then fetched for each member, new or already on the List. Data a member already holds is not bought again. Above 25 credits of worst-case estimate, a request with families needs maxCredits, the most it may spend: the operation stops at that ceiling (stopReason max_credits) and can be resumed with a higher one. With webhookUrl (public HTTPS), that URL receives one POST each time the operation stops moving (completed, stopped, cancelled); the event carries no member data, read the operation at its pollUrl. Lines naming the same identity with the same externalId are deduplicated. Replaying with the same operationId returns the same operation and never charges twice. To stop it, cancel it (operations/{operationId}/cancel): cancelling is final, a new run needs a new operationId.
+         */
+        post: operations["importListSignals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}/operations/{operationId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a List operation
+         * @description Reads an operation started by an import (its pollUrl). While clientAction is poll, read again no sooner than pollAfterSeconds; with wait=N (0 to 20) the request is held and answers as soon as the operation settles, pauses or stops, or still running when the wait ends. completed means the data can be read. When it stops (clientAction resume), stopReason and nextStep say what to do. With rows=true, also returns one page of per-line results (index in the request, externalId, outcome, memberId); pass rows.nextCursor back as cursor for the next page, with perPage from 1 to 1000 (default 200). Free, also at a zero balance, and never counted against rate limits. Credits: 0.
+         */
+        get: operations["getListOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}/operations/{operationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a List operation
+         * @description Stops an import of this workspace, whichever key started it. Lines already in flight finish and are charged as usual; lines not started are never charged and read not_reached in the per-line results. Cancelling is final: replaying the import with the same operationId returns the cancelled operation, and a new run needs a new operationId. Cancelling a cancelled operation answers it again. The import webhookUrl receives the cancelled state. Credits: 0.
+         */
+        post: operations["cancelListOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/lists/{listId}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export a List
+         * @description Downloads the List as CSV, as the dashboard shows it: the members with their stored data, where a value typed over a cell replaces the enriched one, then the Not found rows (Pending Intake) with what was pasted or typed on them. A workspace exports one List at a time: while one runs, another answers 429 LIST_EXPORT_IN_PROGRESS; 429 LIST_EXPORT_BUSY means the server is serving another workspace, retry after Retry-After. Credits: 0.
+         */
+        get: operations["exportList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/enrich/persons/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk enrich people
+         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the job: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the job would otherwise run without it. An API key with credit limits must hold the whole reservation: a job that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started job counts against the key what it reserved, then only what it spent once it settles. Following a job, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
+         */
+        post: operations["bulkEnrichPersons"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List jobs
+         * @description Every background job of the workspace the key may read, newest first, whoever started it: Bulk enrich jobs, List imports and enrichments, Search exports. Pass nextCursor back as cursor for the next page. Credits: 0.
+         */
+        get: operations["listJobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a job
+         * @description Reads one job. With wait=N (0 to 20), the request is held while the job is queued or running and answers as soon as it settles or pauses; it may also answer earlier with the job still running. While the job moves, the response carries Retry-After: 2; read it again no sooner than that. Credits: 0 (free). Does not increment per-minute rate limit counters.
+         */
+        get: operations["getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/jobs/{jobId}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the results of a job
+         * @description The results CSV of an enrich_persons job, the file the dashboard downloads: one row per item, in the order sent. Your columns come first (linkedinUrl, email, firstName, lastName, companyDomain, companyName, externalId), then rc_status and rc_message (what happened, with the credits it cost), the finder columns the job asked for (rc_email, rc_phone and their status), and the rc_ person columns (only rc_linkedin_url when the job did not ask for the profile). The file exists once the job is completed or cancelled, when links.results is set: before, 409 JOB_RESULTS_NOT_READY. Credits: 0 (free).
+         */
+        get: operations["getJobResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/jobs/{jobId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel a job
+         * @description Stops a job an API key or an AI assistant started; a job a person started is stopped in the dashboard (403 JOB_STARTED_BY_A_PERSON). Items already in flight may finish and settle; items not started are never charged and read skipped. Final: idempotent on a cancelled job; a job that already ended answers 409 JOB_NOT_CANCELLABLE. Credits: 0.
+         */
+        post: operations["cancelJob"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1783,7 +2039,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1881,7 +2137,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1979,7 +2235,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2077,7 +2333,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2175,7 +2431,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2273,7 +2529,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2371,7 +2627,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2469,7 +2725,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2567,7 +2823,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2665,7 +2921,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2759,7 +3015,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2853,7 +3109,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2951,7 +3207,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3051,7 +3307,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3149,7 +3405,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3247,7 +3503,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3347,7 +3603,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3445,7 +3701,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3514,7 +3770,6 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Optional. A key you choose (1 to 255 printable ASCII characters, a UUID for example) that makes the request safe to retry. For 24 hours, a request with the same key and the same body returns the first response with Idempotent-Replayed: true, without starting another lookup or debiting credits. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -3550,7 +3805,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3628,7 +3883,6 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Optional. A key you choose (1 to 255 printable ASCII characters, a UUID for example) that makes the request safe to retry. For 24 hours, a request with the same key and the same body returns the first response with Idempotent-Replayed: true, without starting another lookup or debiting credits. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -3664,7 +3918,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3742,7 +3996,6 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Optional. A key you choose (1 to 255 printable ASCII characters, a UUID for example) that makes the request safe to retry. For 24 hours, a request with the same key and the same body returns the first response with Idempotent-Replayed: true, without starting another lookup or debiting credits. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -3778,7 +4031,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3917,7 +4170,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3946,6 +4199,2409 @@ export interface operations {
             };
             /** @description Data not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listLists: {
+        parameters: {
+            query?: {
+                perPage?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Workspace Lists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            items: {
+                                /**
+                                 * Format: uuid
+                                 * @description List id
+                                 */
+                                id: string;
+                                /** @description List name */
+                                name: string;
+                                /** @enum {string} */
+                                entity: "persons" | "companies";
+                                /** @description List Members */
+                                memberCount: number;
+                                /** @description Not found lines kept as Pending Intake */
+                                pendingIntakeCount: number;
+                                /** @description Revision, raised by every member change */
+                                revision?: number;
+                                archivedAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Creation date
+                                 */
+                                createdAt?: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Last update date
+                                 */
+                                updatedAt?: string;
+                                originQuery?: {
+                                    [key: string]: unknown;
+                                } | null;
+                                originLastFind?: {
+                                    [key: string]: unknown;
+                                } | null;
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    createList: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description List name */
+                    name: string;
+                    /** @enum {string} */
+                    entity: "persons" | "companies";
+                };
+            };
+        };
+        responses: {
+            /** @description List created, or the List this Idempotency-Key created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /**
+                             * Format: uuid
+                             * @description List id
+                             */
+                            id: string;
+                            /** @description List name */
+                            name: string;
+                            /** @enum {string} */
+                            entity: "persons" | "companies";
+                            /** @description List Members */
+                            memberCount: number;
+                            /** @description Not found lines kept as Pending Intake */
+                            pendingIntakeCount: number;
+                            /** @description Revision, raised by every member change */
+                            revision?: number;
+                            archivedAt?: string | null;
+                            /**
+                             * Format: date-time
+                             * @description Creation date
+                             */
+                            createdAt?: string;
+                            /**
+                             * Format: date-time
+                             * @description Last update date
+                             */
+                            updatedAt?: string;
+                            originQuery?: {
+                                [key: string]: unknown;
+                            } | null;
+                            originLastFind?: {
+                                [key: string]: unknown;
+                            } | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description LIST_LIMIT_REACHED (200 Lists, 1 on a trial) or IDEMPOTENCY_KEY_REUSED */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getList: {
+        parameters: {
+            query?: {
+                perPage?: number;
+                cursor?: string;
+                kind?: "all" | "members" | "pending";
+            };
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List and one page of rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            list: {
+                                /**
+                                 * Format: uuid
+                                 * @description List id
+                                 */
+                                id: string;
+                                /** @description List name */
+                                name: string;
+                                /** @enum {string} */
+                                entity: "persons" | "companies";
+                                /** @description List Members */
+                                memberCount: number;
+                                /** @description Not found lines kept as Pending Intake */
+                                pendingIntakeCount: number;
+                                /** @description Revision, raised by every member change */
+                                revision?: number;
+                                archivedAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Creation date
+                                 */
+                                createdAt?: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Last update date
+                                 */
+                                updatedAt?: string;
+                                originQuery?: {
+                                    [key: string]: unknown;
+                                } | null;
+                                originLastFind?: {
+                                    [key: string]: unknown;
+                                } | null;
+                            };
+                            members: ({
+                                /** @enum {string} */
+                                kind: "member";
+                                /**
+                                 * Format: uuid
+                                 * @description Member id
+                                 */
+                                id: string;
+                                /** @description Person or company id */
+                                entityId: string;
+                                linkedinUrl?: string | null;
+                                /** @description identified, profiled or enriched */
+                                status?: string;
+                                /** @description Stored fields, as the List shows them: a value typed over a cell in the dashboard replaces the enriched one */
+                                fields?: {
+                                    [key: string]: unknown;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @description Date the member was added
+                                 */
+                                addedAt?: string;
+                                /** @description Per data family state: profile, company, contactEmail, contactPhone. A contact typed in the dashboard reads found with source manual */
+                                families?: {
+                                    [key: string]: unknown;
+                                };
+                                externalId: string | null;
+                            } | {
+                                /** @enum {string} */
+                                kind?: "pending";
+                                /**
+                                 * Format: uuid
+                                 * @description Pending Intake id
+                                 */
+                                id?: string;
+                                /** @description The Signal as sent */
+                                signal?: {
+                                    [key: string]: unknown;
+                                };
+                                /** @enum {string} */
+                                source?: "file" | "paste";
+                                /**
+                                 * Format: date-time
+                                 * @description Date the line was kept
+                                 */
+                                addedAt?: string;
+                                /** @description Values typed over the row in the dashboard, by column (name, headline, company, url, contactEmail...) */
+                                fields?: {
+                                    [key: string]: string;
+                                };
+                            })[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    deleteList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description Always true */
+                            deleted: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description LIST_BUSY: an operation is still running on the List */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listListMembers: {
+        parameters: {
+            query?: {
+                perPage?: number;
+                cursor?: string;
+                kind?: "all" | "members" | "pending";
+                externalId?: string;
+            };
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            items: ({
+                                /** @enum {string} */
+                                kind: "member";
+                                /**
+                                 * Format: uuid
+                                 * @description Member id
+                                 */
+                                id: string;
+                                /** @description Person or company id */
+                                entityId: string;
+                                linkedinUrl?: string | null;
+                                /** @description identified, profiled or enriched */
+                                status?: string;
+                                /** @description Stored fields, as the List shows them: a value typed over a cell in the dashboard replaces the enriched one */
+                                fields?: {
+                                    [key: string]: unknown;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @description Date the member was added
+                                 */
+                                addedAt?: string;
+                                /** @description Per data family state: profile, company, contactEmail, contactPhone. A contact typed in the dashboard reads found with source manual */
+                                families?: {
+                                    [key: string]: unknown;
+                                };
+                                externalId: string | null;
+                            } | {
+                                /** @enum {string} */
+                                kind?: "pending";
+                                /**
+                                 * Format: uuid
+                                 * @description Pending Intake id
+                                 */
+                                id?: string;
+                                /** @description The Signal as sent */
+                                signal?: {
+                                    [key: string]: unknown;
+                                };
+                                /** @enum {string} */
+                                source?: "file" | "paste";
+                                /**
+                                 * Format: date-time
+                                 * @description Date the line was kept
+                                 */
+                                addedAt?: string;
+                                /** @description Values typed over the row in the dashboard, by column (name, headline, company, url, contactEmail...) */
+                                fields?: {
+                                    [key: string]: string;
+                                };
+                            })[];
+                            /** @description List Members */
+                            memberCount: number;
+                            /** @description Pending Intake rows */
+                            pendingIntakeCount: number;
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    addListMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    signals: {
+                        /** @description Person or company Social URL */
+                        linkedinUrl?: string;
+                        /** @description Alias of linkedinUrl */
+                        url?: string;
+                        /** @description Person email */
+                        email?: string;
+                        /** @description Person first name (with lastName and a company) */
+                        firstName?: string;
+                        /** @description Person last name (with firstName and a company) */
+                        lastName?: string;
+                        /** @description Company domain: a person hint, or a company */
+                        companyDomain?: string;
+                        /** @description Company name hint for a person */
+                        companyName?: string;
+                        /** @description Company domain */
+                        domain?: string;
+                        /** @description Company id (com_...), company Lists */
+                        companyId?: string;
+                        /** @description Your own identifier for this line (1 to 200 characters, no control characters). Echoed in the line result and kept on the member it names; the first one a member receives is kept. Never used to find the person. */
+                        externalId?: string;
+                    }[];
+                    /**
+                     * @default paste
+                     * @enum {string}
+                     */
+                    source?: "file" | "paste";
+                    /**
+                     * @description For Social URL Signals: true fetches the profile live (2 credits); omitted or false uses saved data (1 credit).
+                     * @default false
+                     */
+                    live?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Add summary with per-Signal results */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description Members added */
+                            inserted: number;
+                            /** @description Signals naming a member already on the List */
+                            skipped: number;
+                            /** @description Signals refused (member limit, ambiguous identity) */
+                            refused?: number;
+                            /** @description Credits charged */
+                            creditsConsumed: number;
+                            /** @description Signals kept as Pending Intake */
+                            unresolvedCount?: number;
+                            /** @description Set when a stop left later Signals unread: quota, member_cap, pending_cap */
+                            stoppedReason?: string;
+                            /** @description One entry per Signal, in request order */
+                            results: {
+                                /** @description Position of the Signal in the request (0-based) */
+                                index: number;
+                                /** @enum {string} */
+                                outcome: "added" | "already_present" | "not_found" | "refused" | "failed" | "not_reached";
+                                /** @description Your identifier, as sent */
+                                externalId?: string;
+                                /**
+                                 * Format: uuid
+                                 * @description Member the line names
+                                 */
+                                memberId?: string;
+                                /** @description Person or company id */
+                                entityId?: string;
+                                /**
+                                 * Format: uuid
+                                 * @description Pending Intake kept for a not_found line
+                                 */
+                                pendingId?: string;
+                                /** @enum {string} */
+                                reason?: "member_limit" | "pending_intake_limit" | "insufficient_credits" | "ambiguous_identity" | "data_subject_blocked" | "identity_unavailable" | "quota_unavailable" | "stopped";
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description The List reached its 25,000 member or Pending Intake limit */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description The request ran out of time; Signals already added stay added */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    removeListMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    memberIds?: string[];
+                    pendingIds?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Members removed and/or Pending Intake dismissed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description Members removed */
+                            removed: number;
+                            /** @description Pending Intake rows dismissed */
+                            dismissed: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    importListSignals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    signals?: {
+                        /** @description Person or company Social URL */
+                        linkedinUrl?: string;
+                        /** @description Alias of linkedinUrl */
+                        url?: string;
+                        /** @description Person email */
+                        email?: string;
+                        /** @description Person first name (with lastName and a company) */
+                        firstName?: string;
+                        /** @description Person last name (with firstName and a company) */
+                        lastName?: string;
+                        /** @description Company domain: a person hint, or a company */
+                        companyDomain?: string;
+                        /** @description Company name hint for a person */
+                        companyName?: string;
+                        /** @description Company domain */
+                        domain?: string;
+                        /** @description Company id (com_...), company Lists */
+                        companyId?: string;
+                        /** @description Your own identifier for this line (1 to 200 characters, no control characters). Echoed in the line result and kept on the member it names; the first one a member receives is kept. Never used to find the person. */
+                        externalId?: string;
+                    }[];
+                    /**
+                     * Format: uri
+                     * @description Public CSV or Google Sheet URL (instead of signals)
+                     */
+                    sourceUrl?: string;
+                    /**
+                     * @description true fetches Social URL profiles live; omitted or false uses saved data
+                     * @default false
+                     */
+                    live?: boolean;
+                    families?: ("profile" | "company" | "contact_email" | "contact_phone")[];
+                    /** @description The most this operation may spend */
+                    maxCredits?: number;
+                    /**
+                     * Format: uuid
+                     * @description Your operation id: replaying it returns the same operation
+                     */
+                    operationId?: string;
+                    /**
+                     * Format: uri
+                     * @description Public HTTPS URL told when the operation stops moving
+                     */
+                    webhookUrl?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation queued */
+            202: {
+                headers: {
+                    /** @description Seconds to wait before the first read at pollUrl */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /**
+                             * Format: uuid
+                             * @description Operation id: read it at pollUrl
+                             */
+                            operationId: string;
+                            /** @description Path that reads the operation (GET, ?wait=N holds it) */
+                            pollUrl: string;
+                            /** @description Lines queued after deduplication */
+                            totalRows: number;
+                            /** @description Lines dropped as duplicates of an earlier line */
+                            duplicateCount: number;
+                            /** @description The job record */
+                            job?: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description LIST_INVALID_INPUT (for example maxCredits missing above 25 credits, or an operationId replayed with other Signals) or WEBHOOK_URL_UNREACHABLE */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description BULK_QUEUE_UNAVAILABLE: retry shortly */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getListOperation: {
+        parameters: {
+            query?: {
+                wait?: number;
+                rows?: "true" | "false";
+                cursor?: string;
+                perPage?: number;
+            };
+            header?: never;
+            path: {
+                listId: string;
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The operation */
+            200: {
+                headers: {
+                    /** @description Present while the operation runs: seconds before reading again */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description Operation id */
+                            operationId: string;
+                            /**
+                             * Format: uuid
+                             * @description List id
+                             */
+                            listId: string;
+                            /** @description Operation kind */
+                            kind?: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "paused" | "completed" | "partial" | "stopped_budget" | "failed" | "cancelled" | "refused" | "unknown";
+                            /**
+                             * @description poll: read again after pollAfterSeconds. resume: read stopReason and nextStep, then resume. done: finished, the data can be read. reconcile: the outcome is ambiguous, never replay it.
+                             * @enum {string}
+                             */
+                            clientAction: "poll" | "resume" | "done" | "reconcile";
+                            progress?: {
+                                /** @description Lines processed */
+                                processed?: number;
+                                /** @description Lines in the operation */
+                                total?: number;
+                                /** @description Lines that resolved a member */
+                                succeeded?: number;
+                                /** @description Lines that failed or were not found */
+                                failed?: number;
+                                /** @description Lines skipped */
+                                skipped?: number;
+                                /** @description Lines left */
+                                remaining?: number;
+                                /** @description Lines with an ambiguous outcome */
+                                unknownCount?: number;
+                            };
+                            /** @description Credits charged so far */
+                            creditsConsumed?: number;
+                            /** @description Credits reserved by steps in flight */
+                            creditsPending?: number;
+                            /** @description Credits reserved when the operation was created: an import reserves nothing (0) and spends up to maxCredits */
+                            creditsEstimated?: number;
+                            maxCredits?: number | null;
+                            estimatedSeconds?: number | null;
+                            estimateBlockedUntil?: string | null;
+                            /** @description Seconds to wait before reading again (0 once polling stops) */
+                            pollAfterSeconds: number;
+                            pollUrl: string | null;
+                            stopReason?: string | null;
+                            /** @description What to do after a stop */
+                            nextStep?: unknown;
+                            errorMessage?: string | null;
+                            startedAt?: string | null;
+                            completedAt?: string | null;
+                            rows?: {
+                                items?: {
+                                    index: number | null;
+                                    /** @description Line number in the operation (1-based) */
+                                    rowNumber: number;
+                                    /** @enum {string} */
+                                    outcome: "pending" | "added" | "already_present" | "resolved" | "not_found" | "refused" | "failed" | "not_reached" | "unknown";
+                                    externalId: string | null;
+                                    memberId: string | null;
+                                    errorCode?: string | null;
+                                    reason?: string | null;
+                                    /** @description The identifiers sent */
+                                    signal?: {
+                                        [key: string]: unknown;
+                                    };
+                                }[];
+                                nextCursor?: string | null;
+                            } | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description LIST_OPERATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancelListOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+                operationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancelled operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /** @description Operation id */
+                            operationId: string;
+                            /**
+                             * Format: uuid
+                             * @description List id
+                             */
+                            listId: string;
+                            /** @description Operation kind */
+                            kind?: string;
+                            /** @enum {string} */
+                            status: "queued" | "running" | "paused" | "completed" | "partial" | "stopped_budget" | "failed" | "cancelled" | "refused" | "unknown";
+                            /**
+                             * @description poll: read again after pollAfterSeconds. resume: read stopReason and nextStep, then resume. done: finished, the data can be read. reconcile: the outcome is ambiguous, never replay it.
+                             * @enum {string}
+                             */
+                            clientAction: "poll" | "resume" | "done" | "reconcile";
+                            progress?: {
+                                /** @description Lines processed */
+                                processed?: number;
+                                /** @description Lines in the operation */
+                                total?: number;
+                                /** @description Lines that resolved a member */
+                                succeeded?: number;
+                                /** @description Lines that failed or were not found */
+                                failed?: number;
+                                /** @description Lines skipped */
+                                skipped?: number;
+                                /** @description Lines left */
+                                remaining?: number;
+                                /** @description Lines with an ambiguous outcome */
+                                unknownCount?: number;
+                            };
+                            /** @description Credits charged so far */
+                            creditsConsumed?: number;
+                            /** @description Credits reserved by steps in flight */
+                            creditsPending?: number;
+                            /** @description Credits reserved when the operation was created: an import reserves nothing (0) and spends up to maxCredits */
+                            creditsEstimated?: number;
+                            maxCredits?: number | null;
+                            estimatedSeconds?: number | null;
+                            estimateBlockedUntil?: string | null;
+                            /** @description Seconds to wait before reading again (0 once polling stops) */
+                            pollAfterSeconds: number;
+                            pollUrl: string | null;
+                            stopReason?: string | null;
+                            /** @description What to do after a stop */
+                            nextStep?: unknown;
+                            errorMessage?: string | null;
+                            startedAt?: string | null;
+                            completedAt?: string | null;
+                            rows?: {
+                                items?: {
+                                    index: number | null;
+                                    /** @description Line number in the operation (1-based) */
+                                    rowNumber: number;
+                                    /** @enum {string} */
+                                    outcome: "pending" | "added" | "already_present" | "resolved" | "not_found" | "refused" | "failed" | "not_reached" | "unknown";
+                                    externalId: string | null;
+                                    memberId: string | null;
+                                    errorCode?: string | null;
+                                    reason?: string | null;
+                                    /** @description The identifiers sent */
+                                    signal?: {
+                                        [key: string]: unknown;
+                                    };
+                                }[];
+                                nextCursor?: string | null;
+                            } | null;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description LIST_OPERATION_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description LIST_OPERATION_NOT_CANCELLABLE: the operation already ended */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    exportList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List CSV: members, then Not found rows */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    bulkEnrichPersons: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** @description Person LinkedIn URL (read from saved data unless live is true) */
+                        linkedinUrl?: string;
+                        /** @description Email address */
+                        email?: string;
+                        /** @description First name */
+                        firstName?: string;
+                        /** @description Last name */
+                        lastName?: string;
+                        /** @description Company domain (e.g. acme.com) */
+                        companyDomain?: string;
+                        /** @description Company name (alternative to domain) */
+                        companyName?: string;
+                        /** @description Your own identifier, given back in its row of the results CSV */
+                        externalId?: string;
+                    }[];
+                    /** @description What to look up for each item (default: profile) */
+                    families?: ("profile" | "contact_email" | "contact_phone")[];
+                    /**
+                     * @description With contact_email: the kind of email to look for
+                     * @default professional
+                     * @enum {string}
+                     */
+                    emailType?: "professional" | "personal" | "any";
+                    /** @description Scrape LinkedIn URL items live instead of reading saved data (default false) */
+                    live?: boolean;
+                    /** @description A name for the job history (default: Sent via API) */
+                    name?: string;
+                    /**
+                     * Format: uri
+                     * @description Public HTTPS URL that receives one POST when the job settles: { event: job.updated, jobId, type, status, pollUrl, resultsUrl, occurredAt }. It carries no results.
+                     */
+                    webhookUrl?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Bulk enrich job created */
+            202: {
+                headers: {
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    "Retry-After"?: 2;
+                    /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
+                    "Idempotent-Replayed"?: "true";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            job: {
+                                /**
+                                 * Format: uuid
+                                 * @description Job id
+                                 */
+                                id: string;
+                                /**
+                                 * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                                 * @enum {string}
+                                 */
+                                type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
+                                /** @enum {string} */
+                                entity: "persons" | "companies";
+                                /**
+                                 * @description queued and running still move (read it again, or wait=N); paused waits for someone to resume it; completed, cancelled and failed are final.
+                                 * @enum {string}
+                                 */
+                                status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
+                                source: ("api" | "mcp" | "ask" | "dashboard") | null;
+                                /** @description The file name, or the name given at creation */
+                                name: string;
+                                listId: string | null;
+                                progress: {
+                                    /** @description Items in the job */
+                                    total: number;
+                                    /** @description Items done */
+                                    processed: number;
+                                    /** @description Items that delivered */
+                                    succeeded: number;
+                                    /** @description Items that did not (not found, invalid, error) */
+                                    failed: number;
+                                    /** @description Items not run (duplicates, no usable input, out of credits, cancelled) */
+                                    skipped: number;
+                                    /** @description Items left */
+                                    remaining: number;
+                                };
+                                credits: {
+                                    /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                    estimated: number;
+                                    used: number | null;
+                                };
+                                estimatedSecondsRemaining: number | null;
+                                error: {
+                                    /** @description Why the job failed */
+                                    code: string;
+                                } | null;
+                                /**
+                                 * Format: date-time
+                                 * @description ISO 8601
+                                 */
+                                createdAt: string;
+                                startedAt: string | null;
+                                completedAt: string | null;
+                                links: {
+                                    /** @description Reads this job (wait=N holds the request until it settles) */
+                                    self: string;
+                                    results: string | null;
+                                    operation: string | null;
+                                };
+                            };
+                            /** @description Items that repeat an earlier one */
+                            duplicateCount: number;
+                            /** @description Credits reserved */
+                            creditsEstimated: number;
+                            /** @description Items the balance could not cover */
+                            notRunForCredits: number;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation, or an Idempotency-Key that is not 1 to 255 printable ASCII characters (INVALID_IDEMPOTENCY_KEY) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description IDEMPOTENCY_KEY_IN_USE: a request with the same Idempotency-Key is still being processed. Retry after the Retry-After seconds to receive its response. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain, or an Idempotency-Key already used with a different body (IDEMPOTENCY_KEY_REUSED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    listJobs: {
+        parameters: {
+            query?: {
+                type?: string;
+                status?: string;
+                listId?: string;
+                perPage?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Jobs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            items: {
+                                /**
+                                 * Format: uuid
+                                 * @description Job id
+                                 */
+                                id: string;
+                                /**
+                                 * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                                 * @enum {string}
+                                 */
+                                type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
+                                /** @enum {string} */
+                                entity: "persons" | "companies";
+                                /**
+                                 * @description queued and running still move (read it again, or wait=N); paused waits for someone to resume it; completed, cancelled and failed are final.
+                                 * @enum {string}
+                                 */
+                                status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
+                                source: ("api" | "mcp" | "ask" | "dashboard") | null;
+                                /** @description The file name, or the name given at creation */
+                                name: string;
+                                listId: string | null;
+                                progress: {
+                                    /** @description Items in the job */
+                                    total: number;
+                                    /** @description Items done */
+                                    processed: number;
+                                    /** @description Items that delivered */
+                                    succeeded: number;
+                                    /** @description Items that did not (not found, invalid, error) */
+                                    failed: number;
+                                    /** @description Items not run (duplicates, no usable input, out of credits, cancelled) */
+                                    skipped: number;
+                                    /** @description Items left */
+                                    remaining: number;
+                                };
+                                credits: {
+                                    /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                    estimated: number;
+                                    used: number | null;
+                                };
+                                estimatedSecondsRemaining: number | null;
+                                error: {
+                                    /** @description Why the job failed */
+                                    code: string;
+                                } | null;
+                                /**
+                                 * Format: date-time
+                                 * @description ISO 8601
+                                 */
+                                createdAt: string;
+                                startedAt: string | null;
+                                completedAt: string | null;
+                                links: {
+                                    /** @description Reads this job (wait=N holds the request until it settles) */
+                                    self: string;
+                                    results: string | null;
+                                    operation: string | null;
+                                };
+                            }[];
+                            nextCursor: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getJob: {
+        parameters: {
+            query?: {
+                wait?: number;
+            };
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job */
+            200: {
+                headers: {
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    "Retry-After"?: 2;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /**
+                             * Format: uuid
+                             * @description Job id
+                             */
+                            id: string;
+                            /**
+                             * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                             * @enum {string}
+                             */
+                            type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
+                            /** @enum {string} */
+                            entity: "persons" | "companies";
+                            /**
+                             * @description queued and running still move (read it again, or wait=N); paused waits for someone to resume it; completed, cancelled and failed are final.
+                             * @enum {string}
+                             */
+                            status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
+                            source: ("api" | "mcp" | "ask" | "dashboard") | null;
+                            /** @description The file name, or the name given at creation */
+                            name: string;
+                            listId: string | null;
+                            progress: {
+                                /** @description Items in the job */
+                                total: number;
+                                /** @description Items done */
+                                processed: number;
+                                /** @description Items that delivered */
+                                succeeded: number;
+                                /** @description Items that did not (not found, invalid, error) */
+                                failed: number;
+                                /** @description Items not run (duplicates, no usable input, out of credits, cancelled) */
+                                skipped: number;
+                                /** @description Items left */
+                                remaining: number;
+                            };
+                            credits: {
+                                /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                estimated: number;
+                                used: number | null;
+                            };
+                            estimatedSecondsRemaining: number | null;
+                            error: {
+                                /** @description Why the job failed */
+                                code: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description ISO 8601
+                             */
+                            createdAt: string;
+                            startedAt: string | null;
+                            completedAt: string | null;
+                            links: {
+                                /** @description Reads this job (wait=N holds the request until it settles) */
+                                self: string;
+                                results: string | null;
+                                operation: string | null;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    getJobResults: {
+        parameters: {
+            query?: {
+                format?: "csv";
+            };
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The results CSV, streamed (UTF-8 with a byte order mark) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description JOB_RESULTS_NOT_READY: the job is queued, running or paused (the file is ready once it is completed or cancelled), or failed (no file) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Schema or validation error, unresolved internal id, or disposable email domain */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit exceeded, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait error.details.retryAfter seconds, then retry. The response carries no quotas object. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
+            451: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    cancelJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cancelled job */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2SuccessEnvelope"] & {
+                        data?: {
+                            /**
+                             * Format: uuid
+                             * @description Job id
+                             */
+                            id: string;
+                            /**
+                             * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                             * @enum {string}
+                             */
+                            type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
+                            /** @enum {string} */
+                            entity: "persons" | "companies";
+                            /**
+                             * @description queued and running still move (read it again, or wait=N); paused waits for someone to resume it; completed, cancelled and failed are final.
+                             * @enum {string}
+                             */
+                            status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
+                            source: ("api" | "mcp" | "ask" | "dashboard") | null;
+                            /** @description The file name, or the name given at creation */
+                            name: string;
+                            listId: string | null;
+                            progress: {
+                                /** @description Items in the job */
+                                total: number;
+                                /** @description Items done */
+                                processed: number;
+                                /** @description Items that delivered */
+                                succeeded: number;
+                                /** @description Items that did not (not found, invalid, error) */
+                                failed: number;
+                                /** @description Items not run (duplicates, no usable input, out of credits, cancelled) */
+                                skipped: number;
+                                /** @description Items left */
+                                remaining: number;
+                            };
+                            credits: {
+                                /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                estimated: number;
+                                used: number | null;
+                            };
+                            estimatedSecondsRemaining: number | null;
+                            error: {
+                                /** @description Why the job failed */
+                                code: string;
+                            } | null;
+                            /**
+                             * Format: date-time
+                             * @description ISO 8601
+                             */
+                            createdAt: string;
+                            startedAt: string | null;
+                            completedAt: string | null;
+                            links: {
+                                /** @description Reads this job (wait=N holds the request until it settles) */
+                                self: string;
+                                results: string | null;
+                                operation: string | null;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Invalid JSON body or endpoint-specific business validation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Missing or invalid API key or OAuth access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description No credits left. Purchase more to continue. */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden: the API key lacks permission for this endpoint, or reached its total credit limit (KEY_CREDIT_LIMIT_REACHED, no reset: raise or reset the limit) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description Data not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description JOB_NOT_CANCELLABLE: the job already ended */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4012,7 +6668,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description Missing or invalid API key */
+            /** @description Missing or invalid API key or OAuth access token */
             401: {
                 headers: {
                     [name: string]: unknown;

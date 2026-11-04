@@ -186,28 +186,151 @@ describe('Job handles and waiting', () => {
   })
 })
 
+describe('Lists safety and operation waiting', () => {
+  it('waits the Lists delay after the progress response', async () => {
+    const { client, calls } = mockClient([
+      () =>
+        new Promise(resolve =>
+          setTimeout(
+            () => resolve(ok({ status: 'running', clientAction: 'poll', pollAfterSeconds: 3 })),
+            500
+          )
+        ),
+      ok({ status: 'completed', clientAction: 'done' })
+    ])
+    const result = client.lists.operations.wait('list', 'op')
+    await vi.runAllTimersAsync()
+    await result
+    expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(3500)
+  })
+  it('falls back to 2 seconds when the Lists response supplies no delay', async () => {
+    const { client, calls } = mockClient([
+      ok({ status: 'running', clientAction: 'poll' }),
+      ok({ status: 'completed', clientAction: 'done' })
+    ])
+    const result = client.lists.operations.wait('list', 'op')
+    await vi.runAllTimersAsync()
+    await result
+    expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(2000)
+  })
+  it('reuses its generated idempotency key across retries and creates a fresh one per call', async () => {
+    const { client, calls } = mockClient([failure(503), ok({ id: 'one' }), ok({ id: 'two' })])
+    const result = client.lists.create({ name: 'Prospects', entity: 'persons' })
+    await vi.runAllTimersAsync()
+    await result
+    await client.lists.create({ name: 'Another', entity: 'persons' })
+    const keys = calls.map(call => new Headers(call.init.headers).get('Idempotency-Key'))
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).not.toBe(keys[0])
+  })
+  it('uses a caller-provided idempotency key', async () => {
+    const { client, calls } = mockClient([ok()])
+    await client.lists.create(
+      { name: 'Prospects', entity: 'persons' },
+      { idempotencyKey: 'caller-key' }
+    )
+    expect(new Headers(calls[0]?.init.headers).get('Idempotency-Key')).toBe('caller-key')
+  })
+  it('generates an import operation id once and preserves an explicit id', async () => {
+    const { client, calls } = mockClient([failure(503), ok(), ok()])
+    const params = { signals: [{ email: 'jane@example.com' }] }
+    const result = client.lists.importSignals('list', params)
+    await vi.runAllTimersAsync()
+    await result
+    await client.lists.importSignals('list', { ...params, operationId: 'caller-id' })
+    const bodies = calls.map(call => JSON.parse(String(call.init.body)))
+    expect(bodies[0].operationId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(bodies[1]).toEqual(bodies[0])
+    expect(bodies[2].operationId).toBe('caller-id')
+    expect(params).not.toHaveProperty('operationId')
+  })
+  it.each([
+    'done',
+    'resume',
+    'reconcile'
+  ])('returns %s without replaying or cancelling the operation', async clientAction => {
+    const { client, calls } = mockClient([
+      ok({ operationId: 'op', status: 'paused', clientAction })
+    ])
+    const onPoll = vi.fn()
+    const result = await client.lists.operations.wait('list', 'op', { onPoll })
+    expect(result.data.clientAction).toBe(clientAction)
+    expect(onPoll).toHaveBeenCalledWith(result)
+    expect(result.metadata?.requestId).toBe('req_test')
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.init.method).toBe('GET')
+  })
+  it('uses variable pollAfterSeconds before the header', async () => {
+    const { client, calls } = mockClient([
+      ok({ status: 'running', clientAction: 'poll', pollAfterSeconds: 7 }, { 'Retry-After': '2' }),
+      ok({ status: 'completed', clientAction: 'done' })
+    ])
+    const result = client.lists.operations.wait('list', 'op', { pollWait: 10 })
+    await vi.runAllTimersAsync()
+    await result
+    expect(calls[0]?.url.searchParams.get('wait')).toBe('10')
+    expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(7000)
+  })
+  it('falls back to Retry-After for list operation pacing', async () => {
+    const { client, calls } = mockClient([
+      ok({ status: 'running', clientAction: 'poll' }, { 'Retry-After': '4' }),
+      ok({ status: 'completed', clientAction: 'done' })
+    ])
+    const result = client.lists.operations.wait('list', 'op')
+    await vi.runAllTimersAsync()
+    await result
+    expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(4000)
+  })
+  it('raises a resumable timeout for list operations', async () => {
+    const { client } = mockClient([
+      ok({ status: 'running', clientAction: 'poll', pollAfterSeconds: 7 })
+    ])
+    const result = expect(
+      client.lists.operations.wait('list', 'op', { timeout: 100 })
+    ).rejects.toBeInstanceOf(JobTimeoutError)
+    await vi.runAllTimersAsync()
+    await result
+  })
+})
+
 describe('remaining polling deadlines', () => {
-  it('jobs stops if the deadline expires before a retry can start', async () => {
+  it.each([
+    'jobs',
+    'lists'
+  ])('%s stops if the deadline expires before a retry can start', async resource => {
     const { client, calls } = mockClient([
       async () => {
         vi.setSystemTime(Date.now() + 5000)
         return failure(503)
       }
     ])
-    await expect(client.jobs.wait('id', { timeout: 1000 })).rejects.toBeInstanceOf(JobTimeoutError)
+    await expect(
+      resource === 'jobs'
+        ? client.jobs.wait('id', { timeout: 1000 })
+        : client.lists.operations.wait('list', 'id', { timeout: 1000 })
+    ).rejects.toBeInstanceOf(JobTimeoutError)
     expect(calls).toHaveLength(1)
   })
-  it('jobs rejects invalid overall timeouts before fetching', async () => {
+  it.each([
+    'jobs',
+    'lists'
+  ])('%s rejects invalid overall timeouts before fetching', async resource => {
     const { client, calls } = mockClient([])
     for (const timeout of [0, -1, Infinity, NaN]) {
-      await expect(client.jobs.wait('id', { timeout })).rejects.toMatchObject({
-        name: 'ReverseContactError'
-      })
+      await expect(
+        resource === 'jobs'
+          ? client.jobs.wait('id', { timeout })
+          : client.lists.operations.wait('list', 'id', { timeout })
+      ).rejects.toMatchObject({ name: 'ReverseContactError' })
     }
     expect(calls).toHaveLength(0)
   })
-  it('jobs shrinks wait across polls and retries, then aborts the in-flight poll', async () => {
-    const pending = job()
+  it.each([
+    'jobs',
+    'lists'
+  ])('%s shrinks wait across polls and retries, then aborts the in-flight poll', async resource => {
+    const pending = resource === 'jobs' ? job() : ok({ status: 'running', clientAction: 'poll' })
     const { client, calls } = mockClient(
       [
         pending,
@@ -216,10 +339,14 @@ describe('remaining polling deadlines', () => {
       ],
       { timeout: 1 }
     )
-    const result = expect(client.jobs.wait('id', { timeout: 5500 })).rejects.toMatchObject({
+    const result = expect(
+      resource === 'jobs'
+        ? client.jobs.wait('id', { timeout: 5500 })
+        : client.lists.operations.wait('list', 'id', { timeout: 5500 })
+    ).rejects.toMatchObject({
       name: 'JobTimeoutError',
       jobId: 'id',
-      lastStatus: 'in_progress'
+      lastStatus: resource === 'jobs' ? 'in_progress' : 'running'
     })
     await vi.advanceTimersByTimeAsync(5499)
     expect(calls.map(call => call.url.searchParams.get('wait'))).toEqual(['5', '3', '2'])
@@ -229,20 +356,29 @@ describe('remaining polling deadlines', () => {
     expect(calls[2]?.init.signal?.aborted).toBe(true)
     expect(calls).toHaveLength(3)
   })
-  it('jobs sends wait=0 for a subsecond deadline', async () => {
+  it.each(['jobs', 'lists'])('%s sends wait=0 for a subsecond deadline', async resource => {
     const { client, calls } = mockClient([() => new Promise(() => {})])
-    const result = expect(client.jobs.wait('id', { timeout: 50 })).rejects.toBeInstanceOf(
-      JobTimeoutError
-    )
+    const result = expect(
+      resource === 'jobs'
+        ? client.jobs.wait('id', { timeout: 50 })
+        : client.lists.operations.wait('list', 'id', { timeout: 50 })
+    ).rejects.toBeInstanceOf(JobTimeoutError)
     await vi.advanceTimersByTimeAsync(50)
     await result
     expect(calls[0]?.url.searchParams.get('wait')).toBe('0')
     expect(calls[0]?.init.signal?.aborted).toBe(true)
   })
-  it('jobs keeps the poll timeout floor when the deadline permits', async () => {
-    const done = job('succeeded')
+  it.each([
+    'jobs',
+    'lists'
+  ])('%s keeps the poll timeout floor when the deadline permits', async resource => {
+    const done =
+      resource === 'jobs' ? job('succeeded') : ok({ status: 'completed', clientAction: 'done' })
     const { client, calls } = mockClient([() => new Promise(() => {}), done], { timeout: 1 })
-    const result = client.jobs.wait('id', { timeout: 100_000 })
+    const result =
+      resource === 'jobs'
+        ? client.jobs.wait('id', { timeout: 100_000 })
+        : client.lists.operations.wait('list', 'id', { timeout: 100_000 })
     await vi.advanceTimersByTimeAsync(34_999)
     expect(calls[0]?.init.signal?.aborted).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
