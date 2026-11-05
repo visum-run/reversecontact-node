@@ -1,26 +1,26 @@
-import type { JobAcknowledgement, JobSnapshot, Metadata, Quotas, Result } from '../types'
-import { JobFailedError, retryAfter } from './errors'
+import type { Metadata, Quotas, Result, TaskAcknowledgement, TaskSnapshot } from '../types'
+import { retryAfter, TaskFailedError } from './errors'
 import type { RequestOptions, Transport } from './http'
 import { poll, retrievePoll, type WaitOptions } from './poll'
 
-export function retrieveJob<T>(
+export function retrieveTask<T>(
   transport: Transport,
   id: string,
   params: { wait?: number } = {},
   options: RequestOptions = {}
-): Promise<Result<JobSnapshot<T>>> {
+): Promise<Result<TaskSnapshot<T>>> {
   return retrievePoll(transport, `/v2/webhooks/${encodeURIComponent(id)}`, params, options)
 }
 
-export function waitJob<T>(
+export function waitTask<T>(
   transport: Transport,
   id: string,
-  options?: WaitOptions<JobSnapshot<T>>
-): Promise<Result<JobSnapshot<T>>> {
+  options?: WaitOptions<TaskSnapshot<T>>
+): Promise<Result<TaskSnapshot<T>>> {
   return poll(
     id,
     (wait, requestOptions, deadline) =>
-      retrievePoll<JobSnapshot<T>>(
+      retrievePoll<TaskSnapshot<T>>(
         transport,
         `/v2/webhooks/${encodeURIComponent(id)}`,
         { wait },
@@ -31,27 +31,28 @@ export function waitJob<T>(
       const data = snapshot.data
       if (data.status === 'succeeded') return null
       if (data.status === 'errored')
-        throw new JobFailedError(id, data.errorCode, data.creditsConsumed, data.result)
+        throw new TaskFailedError(id, data.errorCode, data.creditsConsumed, data.result)
       return retryAfter(snapshot.response.headers) ?? 2
     },
     options
   )
 }
 
-export class Job<T> implements Result<JobAcknowledgement> {
+/** The handle of an async task (live fetch, contact lookup): its acknowledgement, `retrieve` and `wait`. */
+export class Task<T> implements Result<TaskAcknowledgement> {
   readonly id: string
   readonly webhookId: string
   readonly status: string
   readonly pollUrl: string
   readonly replayed: boolean
-  readonly data: JobAcknowledgement
+  readonly data: TaskAcknowledgement
   readonly quotas?: Quotas
   readonly metadata?: Metadata
   readonly response: Response
 
   constructor(
     private readonly transport: Transport,
-    result: Result<JobAcknowledgement>
+    result: Result<TaskAcknowledgement>
   ) {
     this.data = result.data
     this.id = result.data.webhookId
@@ -66,10 +67,15 @@ export class Job<T> implements Result<JobAcknowledgement> {
   retrieve(
     params: { wait?: number } = {},
     options?: RequestOptions
-  ): Promise<Result<JobSnapshot<T>>> {
-    return retrieveJob<T>(this.transport, this.id, params, options)
+  ): Promise<Result<TaskSnapshot<T>>> {
+    return retrieveTask<T>(this.transport, this.id, params, options)
   }
-  wait(options?: WaitOptions<JobSnapshot<T>>): Promise<Result<JobSnapshot<T>>> {
-    return waitJob<T>(this.transport, this.id, options)
+  wait(options?: WaitOptions<TaskSnapshot<T>>): Promise<Result<TaskSnapshot<T>>> {
+    return waitTask<T>(this.transport, this.id, options)
   }
 }
+
+/** @deprecated Use `Task`: the same class under its former name. */
+export const Job = Task
+/** @deprecated Use `Task`. */
+export type Job<T> = Task<T>

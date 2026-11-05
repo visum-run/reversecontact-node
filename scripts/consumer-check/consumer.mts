@@ -2,9 +2,9 @@ import ReverseContact, {
   Area,
   type Fetch,
   Industry,
-  type JobSnapshot,
   type Person,
-  type Result
+  type Result,
+  type TaskSnapshot
 } from '@reverse-contact/sdk'
 
 const fetcher: Fetch = fetch
@@ -14,7 +14,7 @@ const client = new ReverseContact({
   defaultHeaders: new Headers()
 })
 const copy: ReverseContact = client.withOptions({ logLevel: 'off' })
-const result: Result<JobSnapshot<Person>> = await copy.jobs.wait<Person>('id', {
+const result: Result<TaskSnapshot<Person>> = await copy.tasks.wait<Person>('id', {
   headers: { 'X-Test': 'yes' },
   onPoll: snapshot => {
     const status: string = snapshot.data.status
@@ -28,11 +28,11 @@ void (await copy.search.countOrganizations({
   location: { area: [area, 'MR:EMEA'] }
 }))
 const extras: Record<string, unknown> = page.extras
-const job = await copy.contact.findEmail(
+const task = await copy.contact.findEmail(
   { url: 'https://social.com/in/jane' },
   { idempotencyKey: 'stable-id' }
 )
-const replayed: boolean = job.replayed
+const replayed: boolean = task.replayed
 void [result, extras, replayed]
 const members = await copy.lists.members.list('id')
 const count: number | undefined = members.memberCount

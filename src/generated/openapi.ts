@@ -432,8 +432,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Poll async job
-         * @description Returns the status and result of an async job created by the live or contact endpoints. When status is succeeded, data.result contains the job result. With wait=N (0 to 20), the request is held up to N seconds while the job is running and answers as soon as the result is ready; it may also answer earlier with the job still in progress. While the job is not finished, the response carries Retry-After: 2; poll again no sooner than that. Credits: 0 (free). Does not increment per-minute rate limit counters.
+         * Poll async task
+         * @description Returns the status and result of an async task created by the live or contact endpoints. When status is succeeded, data.result contains the task result. With wait=N (0 to 20), the request is held up to N seconds while the task is running and answers as soon as the result is ready; it may also answer earlier with the task still in progress. While the task is not finished, the response carries Retry-After: 2; poll again no sooner than that. Credits: 0 (free). Does not increment per-minute rate limit counters.
          */
         get: operations["pollWebhook"];
         put?: never;
@@ -589,7 +589,7 @@ export interface paths {
         };
         /**
          * Export a List
-         * @description Downloads the List as CSV, as the dashboard shows it: the members with their stored data, where a value typed over a cell replaces the enriched one, then the Not found rows (Pending Intake) with what was pasted or typed on them. A workspace exports one List at a time: while one runs, another answers 429 LIST_EXPORT_IN_PROGRESS; 429 LIST_EXPORT_BUSY means the server is serving another workspace, retry after Retry-After. Credits: 0.
+         * @description Downloads the List as CSV, as the dashboard shows it: one row per line of the List, members and Not found rows (Pending Intake) mixed in the order they were added. A member carries its stored data, where a value typed over a cell replaces the enriched one; a Not found row carries what was pasted or typed on it. A workspace exports one List at a time: while one runs, another answers 429 LIST_EXPORT_IN_PROGRESS; 429 LIST_EXPORT_BUSY means the server is serving another workspace, retry after Retry-After. Credits: 0.
          */
         get: operations["exportList"];
         put?: never;
@@ -600,7 +600,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/enrich/persons/bulk": {
+    "/v2/bulk": {
         parameters: {
             query?: never;
             header?: never;
@@ -611,7 +611,7 @@ export interface paths {
         put?: never;
         /**
          * Bulk enrich people
-         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the job: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the job would otherwise run without it. An API key with credit limits must hold the whole reservation: a job that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started job counts against the key what it reserved, then only what it spent once it settles. Following a job, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
+         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the task: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the task would otherwise run without it. An API key with credit limits must hold the whole reservation: a task that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started task counts against the key what it reserved, then only what it spent once it settles. Following a task, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
          */
         post: operations["bulkEnrichPersons"];
         delete?: never;
@@ -620,7 +620,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/jobs": {
+    "/v2/tasks": {
         parameters: {
             query?: never;
             header?: never;
@@ -628,10 +628,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List jobs
-         * @description Every background job of the workspace the key may read, newest first, whoever started it: Bulk enrich jobs, List imports and enrichments, Search exports. Pass nextCursor back as cursor for the next page. Credits: 0.
+         * List tasks
+         * @description Every background task of the workspace the key may read, newest first, whoever started it: Bulk enrich tasks, List imports and enrichments, Search exports. Pass nextCursor back as cursor for the next page. Credits: 0.
          */
-        get: operations["listJobs"];
+        get: operations["listTasks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -640,7 +640,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/jobs/{jobId}": {
+    "/v2/tasks/{taskId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -648,10 +648,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a job
-         * @description Reads one job. With wait=N (0 to 20), the request is held while the job is queued or running and answers as soon as it settles or pauses; it may also answer earlier with the job still running. While the job moves, the response carries Retry-After: 2; read it again no sooner than that. Credits: 0 (free). Does not increment per-minute rate limit counters.
+         * Get a task
+         * @description Reads one task. With wait=N (0 to 20), the request is held while the task is queued or running and answers as soon as it settles or pauses; it may also answer earlier with the task still running. While the task moves, the response carries Retry-After: 2; read it again no sooner than that. Credits: 0 (free). Does not increment per-minute rate limit counters.
          */
-        get: operations["getJob"];
+        get: operations["getTask"];
         put?: never;
         post?: never;
         delete?: never;
@@ -660,7 +660,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/jobs/{jobId}/results": {
+    "/v2/tasks/{taskId}/results": {
         parameters: {
             query?: never;
             header?: never;
@@ -668,10 +668,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get the results of a job
-         * @description The results of an enrich_persons job, one per item, in the order sent, streamed. format=csv (default) is the file the dashboard downloads: your columns come first (linkedinUrl, email, firstName, lastName, companyDomain, companyName, externalId), then rc_status and rc_message (what happened, with the credits it cost), the finder columns the job asked for (rc_email, rc_phone and their status), and the rc_ person columns (only rc_linkedin_url when the job did not ask for the profile). format=ndjson (JSON Lines) gives one JobResultLine per line: the same outcome, typed, with the person in the /v2/enrich/persons shape. The file exists once the job is completed or cancelled, when links.results is set: before, 409 JOB_RESULTS_NOT_READY. A job stored before NDJSON existed has its CSV only: 409 JOB_RESULTS_FORMAT_UNAVAILABLE. A cancelled job still finishes the items it had started: each reads running until it ends, within the hour, and the file downloaded after that gives its outcome. Credits: 0 (free).
+         * Get the results of a task
+         * @description The results of an enrich_persons task, one per item, in the order sent, streamed. format=csv (default) is the file the dashboard downloads: your columns come first (linkedinUrl, email, firstName, lastName, companyDomain, companyName, externalId), then rc_status and rc_message (what happened, with the credits it cost), the finder columns the task asked for (rc_email, rc_phone and their status), and the rc_ person columns (only rc_linkedin_url when the task did not ask for the profile). format=ndjson (JSON Lines) gives one TaskResultLine per line: the same outcome, typed, with the person in the /v2/enrich/persons shape. The file exists once the task is completed or cancelled, when links.results is set: before, 409 TASK_RESULTS_NOT_READY. A task stored before NDJSON existed has its CSV only: 409 TASK_RESULTS_FORMAT_UNAVAILABLE. A cancelled task still finishes the items it had started: each reads running until it ends, within the hour, and the file downloaded after that gives its outcome. Credits: 0 (free).
          */
-        get: operations["getJobResults"];
+        get: operations["getTaskResults"];
         put?: never;
         post?: never;
         delete?: never;
@@ -680,7 +680,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/jobs/{jobId}/rows": {
+    "/v2/tasks/{taskId}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -688,10 +688,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Read the results of a job, a page at a time
-         * @description The results of an enrich_persons job in the order sent, one JobResultLine per item, as in the NDJSON file, readable from the start of the run. While the job runs, a page stops at the first item not finished: items is empty, with Retry-After, while the next one runs, and a cursor never skips an item. A cancelled job still finishes the items it had started, within the hour: a page waits for them the same way. Pass nextCursor back as cursor; it is null once nothing more will come. A page can hold fewer items than limit (at most 100, 2 MB of JSON). A cursor keeps working once the job settles. A job stored before reading by page existed: 409 JOB_RESULTS_FORMAT_UNAVAILABLE, its CSV stays available at /v2/jobs/{jobId}/results. Too many pages read at once: 429 JOB_ROWS_BUSY, retry after Retry-After. Credits: 0 (free).
+         * Read the results of a task, a page at a time
+         * @description The results of an enrich_persons task in the order sent, one TaskResultLine per item, as in the NDJSON file, readable from the start of the run. While the task runs, a page stops at the first item not finished: items is empty, with Retry-After, while the next one runs, and a cursor never skips an item. A cancelled task still finishes the items it had started, within the hour: a page waits for them the same way. Pass nextCursor back as cursor; it is null once nothing more will come. A page can hold fewer items than limit (at most 100, 2 MB of JSON). A cursor keeps working once the task settles. A task stored before reading by page existed: 409 TASK_RESULTS_FORMAT_UNAVAILABLE, its CSV stays available at /v2/tasks/{taskId}/results. Too many pages read at once: 429 TASK_ROWS_BUSY, retry after Retry-After. Credits: 0 (free).
          */
-        get: operations["getJobRows"];
+        get: operations["getTaskRows"];
         put?: never;
         post?: never;
         delete?: never;
@@ -700,7 +700,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/jobs/{jobId}/cancel": {
+    "/v2/tasks/{taskId}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -710,10 +710,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Cancel a job
-         * @description Stops a job an API key or an AI assistant started; a job a person started is stopped in the dashboard (403 JOB_STARTED_BY_A_PERSON). Items already in flight may finish and settle; items not started are never charged and read skipped. Final: idempotent on a cancelled job; a job that already ended answers 409 JOB_NOT_CANCELLABLE. Credits: 0.
+         * Cancel a task
+         * @description Stops a task an API key or an AI assistant started; a task a person started is stopped in the dashboard (403 TASK_STARTED_BY_A_PERSON). Items already in flight may finish and settle; items not started are never charged and read skipped. Final: idempotent on a cancelled task; a task that already ended answers 409 TASK_NOT_CANCELLABLE. Credits: 0.
          */
-        post: operations["cancelJob"];
+        post: operations["cancelTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1095,33 +1095,33 @@ export interface components {
             /** @description True when data.person is the full profile, false when only the light shape could be returned. */
             isFullProfile: boolean;
         };
-        /** @description One line of GET /v2/jobs/{jobId}/results?format=ndjson and one item of GET /v2/jobs/{jobId}/rows. */
-        JobResultLine: {
-            /** @description Position of the item in the job, from 1 (the order sent) */
+        /** @description One line of GET /v2/tasks/{taskId}/results?format=ndjson and one item of GET /v2/tasks/{taskId}/rows. */
+        TaskResultLine: {
+            /** @description Position of the item in the task, from 1 (the order sent) */
             row: number;
             /** @description What was sent for this item, externalId included (empty fields left out) */
             input: {
                 [key: string]: string;
             };
-            /** @description What happened, as the rc_status column: enriched, partial, not_found, invalid_input, duplicate, insufficient_credits, skipped, data_subject_blocked, rate_limited, error or unknown. running: an item a cancelled job had started and not finished yet, which ends within the hour */
+            /** @description What happened, as the rc_status column: enriched, partial, not_found, invalid_input, duplicate, insufficient_credits, skipped, data_subject_blocked, rate_limited, error or unknown. running: an item a cancelled task had started and not finished yet, which ends within the hour */
             status: string;
             /** @description The same text as the rc_message column, with the credits it cost */
             message: string;
             /** @description Credits this item cost */
             creditsConsumed: number;
-            /** @description The person in the /v2/enrich/persons shape: the full profile (isFullProfile true) or the light shape. Null when none was found, or when the job did not ask for the profile. */
+            /** @description The person in the /v2/enrich/persons shape: the full profile (isFullProfile true) or the light shape. Null when none was found, or when the task did not ask for the profile. */
             person: components["schemas"]["EnrichedPersonFull"] | components["schemas"]["EnrichedPersonLight"] | null;
             /** @description True when person is the full profile */
             isFullProfile: boolean;
-            /** @description The matched profile URL, present when the job did not ask for the profile */
+            /** @description The matched profile URL, present when the task did not ask for the profile */
             linkedinUrl?: string;
-            /** @description Present when the job asked for contact_email */
+            /** @description Present when the task asked for contact_email */
             contactEmail?: {
                 status: string | null;
                 value: string | null;
                 personalValue: string | null;
             };
-            /** @description Present when the job asked for contact_phone */
+            /** @description Present when the task asked for contact_phone */
             contactPhone?: {
                 status: string | null;
                 value: string | null;
@@ -1238,39 +1238,39 @@ export interface components {
             specialityCount?: number;
         };
         /** @description Immediate acknowledgement for async live endpoints. */
-        JobAckData: {
+        TaskAckData: {
             /**
-             * @description Job acknowledgement status
+             * @description Task acknowledgement status
              * @example created
              */
             status?: string;
-            /** @description Unique job id (UUID). Poll GET /v2/webhooks/{webhookId} for the result. */
+            /** @description Unique task id (UUID). Poll GET /v2/webhooks/{webhookId} for the result. */
             webhookId: string;
-            /** @description Convenience path to the polling endpoint for this job */
+            /** @description Convenience path to the polling endpoint for this task */
             pollUrl?: string;
         };
         /** @description Immediate acknowledgement for the asynchronous Contact Email Finder. */
         ContactEmailAckData: {
             /**
-             * @description Job acknowledgement status
+             * @description Task acknowledgement status
              * @example created
              */
             status: string;
-            /** @description Unique job id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
+            /** @description Unique task id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
             webhookId: string;
-            /** @description Convenience path to the polling endpoint for this job */
+            /** @description Convenience path to the polling endpoint for this task */
             pollUrl: string;
         };
         /** @description Immediate acknowledgement for the asynchronous Email Verification. */
         ContactEmailVerifyAckData: {
             /**
-             * @description Job acknowledgement status
+             * @description Task acknowledgement status
              * @example created
              */
             status: string;
-            /** @description Unique job id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
+            /** @description Unique task id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
             webhookId: string;
-            /** @description Convenience path to the polling endpoint for this job */
+            /** @description Convenience path to the polling endpoint for this task */
             pollUrl: string;
         };
         /** @description The verdict, in data.result of the poll response and in the webhook callback. */
@@ -1286,25 +1286,25 @@ export interface components {
         /** @description Immediate acknowledgement for the asynchronous Contact Phone Finder. */
         ContactPhoneAckData: {
             /**
-             * @description Job acknowledgement status
+             * @description Task acknowledgement status
              * @example created
              */
             status: string;
-            /** @description Unique job id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
+            /** @description Unique task id (UUID). Poll GET /v2/webhooks/{webhookId} for the result, or use it to correlate the optional webhook callback. */
             webhookId: string;
-            /** @description Convenience path to the polling endpoint for this job */
+            /** @description Convenience path to the polling endpoint for this task */
             pollUrl: string;
         };
         PollWebhookData: {
-            /** @description Job identifier */
+            /** @description Task identifier */
             webhookId: string;
             /**
-             * @description Job status. created and in_progress are not final; succeeded and errored are.
+             * @description Task status. created and in_progress are not final; succeeded and errored are.
              * @enum {string}
              */
             status: "created" | "in_progress" | "succeeded" | "errored";
             /**
-             * @description Kind of job
+             * @description Kind of task
              * @enum {string}
              */
             eventType: "FETCH_PERSON_DATA" | "FETCH_COMPANY_DATA" | "FETCH_ACTIVITY_DATA" | "FETCH_CONTACT_DATA";
@@ -1312,12 +1312,12 @@ export interface components {
             deliveryStatus: string | null;
             /**
              * Format: date-time
-             * @description When the job was created (ISO 8601)
+             * @description When the task was created (ISO 8601)
              */
             createdAt: string;
-            /** @description Job result: a profile object for live fetches, an array for the contact finders. Set when status is succeeded; an errored job returns the payload it stored, if any; null otherwise. */
+            /** @description Task result: a profile object for live fetches, an array for the contact finders. Set when status is succeeded; an errored task returns the payload it stored, if any; null otherwise. */
             result: unknown;
-            /** @description Credits charged for the job, net of refunds: 0 while the job runs, final once it succeeded or errored */
+            /** @description Credits charged for the task, net of refunds: 0 while the task runs, final once it succeeded or errored */
             creditsConsumed: number;
         };
         SearchFieldsData: {
@@ -3338,16 +3338,16 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Live person job created */
+            /** @description Live person task created */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
-                        data?: components["schemas"]["JobAckData"];
+                        data?: components["schemas"]["TaskAckData"];
                     };
                 };
             };
@@ -3634,16 +3634,16 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Live company job created */
+            /** @description Live company task created */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
-                        data?: components["schemas"]["JobAckData"];
+                        data?: components["schemas"]["TaskAckData"];
                     };
                 };
             };
@@ -3834,10 +3834,10 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Contact email lookup job created */
+            /** @description Contact email lookup task created */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
                     "Idempotent-Replayed"?: "true";
@@ -3947,10 +3947,10 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email verification job created */
+            /** @description Email verification task created */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
                     "Idempotent-Replayed"?: "true";
@@ -4060,10 +4060,10 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Contact phone lookup job created */
+            /** @description Contact phone lookup task created */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
                     "Idempotent-Replayed"?: "true";
@@ -4201,10 +4201,10 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Job status and optional result */
+            /** @description Task status and optional result */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the task is not finished; absent once it is. */
                     "Retry-After"?: 2;
                     [name: string]: unknown;
                 };
@@ -5402,8 +5402,8 @@ export interface operations {
                             totalRows: number;
                             /** @description Lines dropped as duplicates of an earlier line */
                             duplicateCount: number;
-                            /** @description The job record */
-                            job?: {
+                            /** @description The task record, as GET /v2/tasks/{taskId} reads it */
+                            task?: {
                                 [key: string]: unknown;
                             };
                         } & {
@@ -5858,7 +5858,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List CSV: members, then Not found rows */
+            /** @description List CSV: members and Not found rows, in the order they were added */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5979,21 +5979,21 @@ export interface operations {
                     emailType?: "professional" | "personal" | "any";
                     /** @description Scrape LinkedIn URL items live instead of reading saved data (default false) */
                     live?: boolean;
-                    /** @description A name for the job history (default: Sent via API) */
-                    name?: string;
+                    /** @description A name for the task history (default: Sent via API) */
+                    taskName?: string;
                     /**
                      * Format: uri
-                     * @description Public HTTPS URL that receives one POST when the job settles: { event: job.updated, jobId, type, status, pollUrl, resultsUrl, occurredAt }. It carries no results. A failed POST (timeout, network error, 408, 429, 5xx) is retried for about 3 hours, so the same event can arrive twice: key it on jobId and status.
+                     * @description Public HTTPS URL that receives one POST when the task settles: { event: task.updated, taskId, type, status, pollUrl, resultsUrl, occurredAt }. It carries no results. A failed POST (timeout, network error, 408, 429, 5xx) is retried for about 3 hours, so the same event can arrive twice: key it on taskId and status.
                      */
                     webhookUrl?: string;
                 };
             };
         };
         responses: {
-            /** @description Bulk enrich job created */
+            /** @description Bulk enrich task created */
             202: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before reading the task again at task.links.self (always 2). Present while the task is queued or running; absent once it settled or paused. */
                     "Retry-After"?: 2;
                     /** @description true when the response is the stored answer of an earlier request with the same Idempotency-Key. Nothing was started or debited. */
                     "Idempotent-Replayed"?: "true";
@@ -6002,14 +6002,14 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
                         data?: {
-                            job: {
+                            task: {
                                 /**
                                  * Format: uuid
-                                 * @description Job id
+                                 * @description Task id
                                  */
                                 id: string;
                                 /**
-                                 * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                                 * @description enrich_persons: a Bulk enrich task (POST /v2/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
                                  * @enum {string}
                                  */
                                 type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
@@ -6021,11 +6021,11 @@ export interface operations {
                                  */
                                 status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
                                 source: ("api" | "mcp" | "ask" | "dashboard") | null;
-                                /** @description The file name, or the name given at creation */
-                                name: string;
+                                /** @description The file name, or the taskName given at creation */
+                                taskName: string;
                                 listId: string | null;
                                 progress: {
-                                    /** @description Items in the job */
+                                    /** @description Items in the task */
                                     total: number;
                                     /** @description Items done */
                                     processed: number;
@@ -6039,13 +6039,13 @@ export interface operations {
                                     remaining: number;
                                 };
                                 credits: {
-                                    /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                    /** @description Credits reserved when the task was created (0 when nothing is reserved up front) */
                                     estimated: number;
                                     used: number | null;
                                 };
                                 estimatedSecondsRemaining: number | null;
                                 error: {
-                                    /** @description Why the job failed */
+                                    /** @description Why the task failed */
                                     code: string;
                                 } | null;
                                 /**
@@ -6056,7 +6056,7 @@ export interface operations {
                                 startedAt: string | null;
                                 completedAt: string | null;
                                 links: {
-                                    /** @description Reads this job (wait=N holds the request until it settles) */
+                                    /** @description Reads this task (wait=N holds the request until it settles) */
                                     self: string;
                                     results: string | null;
                                     operation: string | null;
@@ -6101,7 +6101,7 @@ export interface operations {
             };
         };
     };
-    listJobs: {
+    listTasks: {
         parameters: {
             query?: {
                 type?: string;
@@ -6116,7 +6116,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Jobs */
+            /** @description Tasks */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6127,11 +6127,11 @@ export interface operations {
                             items: {
                                 /**
                                  * Format: uuid
-                                 * @description Job id
+                                 * @description Task id
                                  */
                                 id: string;
                                 /**
-                                 * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                                 * @description enrich_persons: a Bulk enrich task (POST /v2/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
                                  * @enum {string}
                                  */
                                 type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
@@ -6143,11 +6143,11 @@ export interface operations {
                                  */
                                 status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
                                 source: ("api" | "mcp" | "ask" | "dashboard") | null;
-                                /** @description The file name, or the name given at creation */
-                                name: string;
+                                /** @description The file name, or the taskName given at creation */
+                                taskName: string;
                                 listId: string | null;
                                 progress: {
-                                    /** @description Items in the job */
+                                    /** @description Items in the task */
                                     total: number;
                                     /** @description Items done */
                                     processed: number;
@@ -6161,13 +6161,13 @@ export interface operations {
                                     remaining: number;
                                 };
                                 credits: {
-                                    /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                    /** @description Credits reserved when the task was created (0 when nothing is reserved up front) */
                                     estimated: number;
                                     used: number | null;
                                 };
                                 estimatedSecondsRemaining: number | null;
                                 error: {
-                                    /** @description Why the job failed */
+                                    /** @description Why the task failed */
                                     code: string;
                                 } | null;
                                 /**
@@ -6178,7 +6178,7 @@ export interface operations {
                                 startedAt: string | null;
                                 completedAt: string | null;
                                 links: {
-                                    /** @description Reads this job (wait=N holds the request until it settles) */
+                                    /** @description Reads this task (wait=N holds the request until it settles) */
                                     self: string;
                                     results: string | null;
                                     operation: string | null;
@@ -6263,23 +6263,23 @@ export interface operations {
             };
         };
     };
-    getJob: {
+    getTask: {
         parameters: {
             query?: {
                 wait?: number;
             };
             header?: never;
             path: {
-                jobId: string;
+                taskId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description The job */
+            /** @description The task */
             200: {
                 headers: {
-                    /** @description Seconds to wait before polling GET /v2/webhooks/{webhookId} again (always 2). Present while the job is not finished; absent once it is. */
+                    /** @description Seconds to wait before reading the task again at task.links.self (always 2). Present while the task is queued or running; absent once it settled or paused. */
                     "Retry-After"?: 2;
                     [name: string]: unknown;
                 };
@@ -6288,11 +6288,11 @@ export interface operations {
                         data?: {
                             /**
                              * Format: uuid
-                             * @description Job id
+                             * @description Task id
                              */
                             id: string;
                             /**
-                             * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                             * @description enrich_persons: a Bulk enrich task (POST /v2/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
                              * @enum {string}
                              */
                             type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
@@ -6304,11 +6304,11 @@ export interface operations {
                              */
                             status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
                             source: ("api" | "mcp" | "ask" | "dashboard") | null;
-                            /** @description The file name, or the name given at creation */
-                            name: string;
+                            /** @description The file name, or the taskName given at creation */
+                            taskName: string;
                             listId: string | null;
                             progress: {
-                                /** @description Items in the job */
+                                /** @description Items in the task */
                                 total: number;
                                 /** @description Items done */
                                 processed: number;
@@ -6322,13 +6322,13 @@ export interface operations {
                                 remaining: number;
                             };
                             credits: {
-                                /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                /** @description Credits reserved when the task was created (0 when nothing is reserved up front) */
                                 estimated: number;
                                 used: number | null;
                             };
                             estimatedSecondsRemaining: number | null;
                             error: {
-                                /** @description Why the job failed */
+                                /** @description Why the task failed */
                                 code: string;
                             } | null;
                             /**
@@ -6339,7 +6339,7 @@ export interface operations {
                             startedAt: string | null;
                             completedAt: string | null;
                             links: {
-                                /** @description Reads this job (wait=N holds the request until it settles) */
+                                /** @description Reads this task (wait=N holds the request until it settles) */
                                 self: string;
                                 results: string | null;
                                 operation: string | null;
@@ -6422,27 +6422,27 @@ export interface operations {
             };
         };
     };
-    getJobResults: {
+    getTaskResults: {
         parameters: {
             query?: {
                 format?: "csv" | "ndjson";
             };
             header?: never;
             path: {
-                jobId: string;
+                taskId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description The results, streamed: a CSV (UTF-8 with a byte order mark), or NDJSON (one JobResultLine per line) */
+            /** @description The results, streamed: a CSV (UTF-8 with a byte order mark), or NDJSON (one TaskResultLine per line) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "text/csv": string;
-                    "application/x-ndjson": components["schemas"]["JobResultLine"];
+                    "application/x-ndjson": components["schemas"]["TaskResultLine"];
                 };
             };
             /** @description Invalid JSON body or endpoint-specific business validation */
@@ -6490,7 +6490,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description JOB_RESULTS_NOT_READY: the job is queued, running or paused (the file is ready once it is completed or cancelled), or failed (no file). JOB_RESULTS_FORMAT_UNAVAILABLE: the job was stored before NDJSON existed, its CSV stays available */
+            /** @description TASK_RESULTS_NOT_READY: the task is queued, running or paused (the file is ready once it is completed or cancelled), or failed (no file). TASK_RESULTS_FORMAT_UNAVAILABLE: the task was stored before NDJSON existed, its CSV stays available */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6528,7 +6528,7 @@ export interface operations {
             };
         };
     };
-    getJobRows: {
+    getTaskRows: {
         parameters: {
             query?: {
                 cursor?: string;
@@ -6536,7 +6536,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                jobId: string;
+                taskId: string;
             };
             cookie?: never;
         };
@@ -6553,10 +6553,10 @@ export interface operations {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
                         data?: {
                             /** @description The items of this page, in the order sent */
-                            items: components["schemas"]["JobResultLine"][];
+                            items: components["schemas"]["TaskResultLine"][];
                             nextCursor: string | null;
                             /**
-                             * @description The job status when the page was read
+                             * @description The task status when the page was read
                              * @enum {string}
                              */
                             status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
@@ -6609,7 +6609,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description JOB_RESULTS_FORMAT_UNAVAILABLE: the job was stored before reading by page existed, its CSV stays available */
+            /** @description TASK_RESULTS_FORMAT_UNAVAILABLE: the task was stored before reading by page existed, its CSV stays available */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -6627,7 +6627,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description JOB_ROWS_BUSY: too many pages read at once on the server. Or the rate limit, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait Retry-After (error.details.retryAfter) seconds, then retry. */
+            /** @description TASK_ROWS_BUSY: too many pages read at once on the server. Or the rate limit, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED). Wait Retry-After (error.details.retryAfter) seconds, then retry. */
             429: {
                 headers: {
                     /** @description Seconds to wait before reading again */
@@ -6649,18 +6649,18 @@ export interface operations {
             };
         };
     };
-    cancelJob: {
+    cancelTask: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                jobId: string;
+                taskId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description The cancelled job */
+            /** @description The cancelled task */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6670,11 +6670,11 @@ export interface operations {
                         data?: {
                             /**
                              * Format: uuid
-                             * @description Job id
+                             * @description Task id
                              */
                             id: string;
                             /**
-                             * @description enrich_persons: a Bulk enrich job (POST /v2/enrich/persons/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
+                             * @description enrich_persons: a Bulk enrich task (POST /v2/bulk, or a file from the dashboard). list_import: Signals or a file imported into a List. list_enrich: data fetched for List members. list_search_import: a Search added to a List. search_export: a Search exported as a file.
                              * @enum {string}
                              */
                             type: "enrich_persons" | "list_import" | "list_enrich" | "list_search_import" | "search_export";
@@ -6686,11 +6686,11 @@ export interface operations {
                              */
                             status: "queued" | "running" | "paused" | "completed" | "cancelled" | "failed";
                             source: ("api" | "mcp" | "ask" | "dashboard") | null;
-                            /** @description The file name, or the name given at creation */
-                            name: string;
+                            /** @description The file name, or the taskName given at creation */
+                            taskName: string;
                             listId: string | null;
                             progress: {
-                                /** @description Items in the job */
+                                /** @description Items in the task */
                                 total: number;
                                 /** @description Items done */
                                 processed: number;
@@ -6704,13 +6704,13 @@ export interface operations {
                                 remaining: number;
                             };
                             credits: {
-                                /** @description Credits reserved when the job was created (0 when nothing is reserved up front) */
+                                /** @description Credits reserved when the task was created (0 when nothing is reserved up front) */
                                 estimated: number;
                                 used: number | null;
                             };
                             estimatedSecondsRemaining: number | null;
                             error: {
-                                /** @description Why the job failed */
+                                /** @description Why the task failed */
                                 code: string;
                             } | null;
                             /**
@@ -6721,7 +6721,7 @@ export interface operations {
                             startedAt: string | null;
                             completedAt: string | null;
                             links: {
-                                /** @description Reads this job (wait=N holds the request until it settles) */
+                                /** @description Reads this task (wait=N holds the request until it settles) */
                                 self: string;
                                 results: string | null;
                                 operation: string | null;
@@ -6775,7 +6775,7 @@ export interface operations {
                     "application/json": components["schemas"]["V2ErrorEnvelope"];
                 };
             };
-            /** @description JOB_NOT_CANCELLABLE: the job already ended */
+            /** @description TASK_NOT_CANCELLABLE: the task already ended */
             409: {
                 headers: {
                     [name: string]: unknown;

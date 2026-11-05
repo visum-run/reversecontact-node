@@ -4,11 +4,15 @@ import {
   APITimeoutError,
   GoneError,
   InternalServerError,
+  Job,
   JobFailedError,
   JobTimeoutError,
   NotFoundError,
   parseWebhookDelivery,
-  ReverseContactError
+  ReverseContactError,
+  Task,
+  TaskFailedError,
+  TaskTimeoutError
 } from '../src'
 import { failure, job, mockClient, ok } from './helpers'
 
@@ -21,7 +25,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('Job handles and waiting', () => {
+describe('Task handles and waiting', () => {
   it('returns acknowledgement fields and a typed successful result', async () => {
     const { client, calls } = mockClient([
       ok({ webhookId: 'job-id', status: 'created', pollUrl: '/v2/webhooks/job-id' }),
@@ -55,7 +59,7 @@ describe('Job handles and waiting', () => {
     const { client } = mockClient([
       job('succeeded', { result: [{ value: 'jane@example.com', type: 'professional' }] })
     ])
-    const result = await client.jobs.wait<{ value: string; type: string }[]>('stored-id')
+    const result = await client.tasks.wait<{ value: string; type: string }[]>('stored-id')
     expect(result.data.result?.[0]?.value).toBe('jane@example.com')
   })
   it.each([
@@ -65,15 +69,15 @@ describe('Job handles and waiting', () => {
     'email-not-found',
     'phone-not-found',
     'fetch-data-error'
-  ])('raises JobFailedError for %s without recreating a job', async errorCode => {
+  ])('raises TaskFailedError for %s without recreating a task', async errorCode => {
     const payload = { partial: true }
     const { client, calls } = mockClient([
       job('errored', { errorCode, result: payload, creditsConsumed: 2 })
     ])
-    const result: unknown = await client.jobs.wait('job-id').catch(error => error)
-    expect(result).toBeInstanceOf(JobFailedError)
+    const result: unknown = await client.tasks.wait('job-id').catch(error => error)
+    expect(result).toBeInstanceOf(TaskFailedError)
     expect(result).toMatchObject({
-      jobId: 'job-id',
+      taskId: 'job-id',
       errorCode,
       result: payload,
       creditsConsumed: 2,
@@ -86,7 +90,7 @@ describe('Job handles and waiting', () => {
     [410, GoneError]
   ])('stops on HTTP %i', async (status, ErrorClass) => {
     const { client, calls } = mockClient([failure(status)])
-    await expect(client.jobs.wait('gone')).rejects.toBeInstanceOf(ErrorClass)
+    await expect(client.tasks.wait('gone')).rejects.toBeInstanceOf(ErrorClass)
     expect(calls).toHaveLength(1)
   })
   it('paces early responses from poll start using Retry-After', async () => {
@@ -94,7 +98,7 @@ describe('Job handles and waiting', () => {
       job('in_progress', {}, { 'Retry-After': '3' }),
       job('succeeded')
     ])
-    const result = client.jobs.wait('job-id')
+    const result = client.tasks.wait('job-id')
     await vi.advanceTimersByTimeAsync(2999)
     expect(calls).toHaveLength(1)
     await vi.advanceTimersByTimeAsync(1)
@@ -106,7 +110,7 @@ describe('Job handles and waiting', () => {
       [() => new Promise(resolve => setTimeout(() => resolve(job()), 20_000)), job('succeeded')],
       { timeout: 10 }
     )
-    const result = client.jobs.wait('job-id')
+    const result = client.tasks.wait('job-id')
     await vi.advanceTimersByTimeAsync(20_000)
     await result
     expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(20_000)
@@ -116,7 +120,7 @@ describe('Job handles and waiting', () => {
       timeout: 1,
       maxRetries: 0
     })
-    const result = expect(client.jobs.retrieve('job-id', { wait: 20 })).rejects.toBeInstanceOf(
+    const result = expect(client.tasks.retrieve('job-id', { wait: 20 })).rejects.toBeInstanceOf(
       APITimeoutError
     )
     await vi.advanceTimersByTimeAsync(34_999)
@@ -126,9 +130,9 @@ describe('Job handles and waiting', () => {
   })
   it('enforces an overall deadline during a held poll', async () => {
     const { client, calls } = mockClient([() => new Promise(() => {})])
-    const result = expect(client.jobs.wait('resume-me', { timeout: 123 })).rejects.toMatchObject({
-      name: 'JobTimeoutError',
-      jobId: 'resume-me'
+    const result = expect(client.tasks.wait('resume-me', { timeout: 123 })).rejects.toMatchObject({
+      name: 'TaskTimeoutError',
+      taskId: 'resume-me'
     })
     await vi.advanceTimersByTimeAsync(123)
     await result
@@ -136,8 +140,8 @@ describe('Job handles and waiting', () => {
   })
   it('reports lastStatus when the deadline expires during pacing', async () => {
     const { client } = mockClient([job()])
-    const result = expect(client.jobs.wait('job-id', { timeout: 100 })).rejects.toMatchObject({
-      name: 'JobTimeoutError',
+    const result = expect(client.tasks.wait('job-id', { timeout: 100 })).rejects.toMatchObject({
+      name: 'TaskTimeoutError',
       lastStatus: 'in_progress'
     })
     await vi.runAllTimersAsync()
@@ -153,7 +157,7 @@ describe('Job handles and waiting', () => {
       ],
       { maxRetries: 0 }
     )
-    const result = client.jobs.wait('job-id')
+    const result = client.tasks.wait('job-id')
     await vi.runAllTimersAsync()
     await result
     expect(calls.map(call => call.started - (calls[0]?.started ?? 0))).toEqual([
@@ -162,7 +166,7 @@ describe('Job handles and waiting', () => {
   })
   it('bounds consecutive poll retries', async () => {
     const { client, calls } = mockClient(Array.from({ length: 5 }, () => failure(503)))
-    const result = expect(client.jobs.wait('job-id')).rejects.toBeInstanceOf(InternalServerError)
+    const result = expect(client.tasks.wait('job-id')).rejects.toBeInstanceOf(InternalServerError)
     await vi.runAllTimersAsync()
     await result
     expect(calls).toHaveLength(5)
@@ -171,7 +175,7 @@ describe('Job handles and waiting', () => {
     const controller = new AbortController()
     const { client, calls } = mockClient([job()])
     const result = expect(
-      client.jobs.wait('job-id', { signal: controller.signal })
+      client.tasks.wait('job-id', { signal: controller.signal })
     ).rejects.toBeInstanceOf(APIConnectionError)
     await vi.advanceTimersByTimeAsync(10)
     controller.abort()
@@ -181,8 +185,48 @@ describe('Job handles and waiting', () => {
   it('validates pollWait', async () => {
     const { client, calls } = mockClient([])
     for (const pollWait of [-1, 21, 1.5])
-      await expect(client.jobs.wait('id', { pollWait })).rejects.toBeInstanceOf(ReverseContactError)
+      await expect(client.tasks.wait('id', { pollWait })).rejects.toBeInstanceOf(
+        ReverseContactError
+      )
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('deprecated job names', () => {
+  it('keep client.jobs as the same object as client.tasks', async () => {
+    const { client, calls } = mockClient([job('succeeded', { result: { id: 'prs_jane' } })])
+    expect(client.jobs).toBe(client.tasks)
+    const copy = client.withOptions({ maxRetries: 1 })
+    expect(copy.jobs).toBe(copy.tasks)
+    const result = await client.jobs.wait('stored-id')
+    expect(result.data.status).toBe('succeeded')
+    expect(calls[0]?.url.pathname).toBe('/v2/webhooks/stored-id')
+  })
+  it('keep the former class names as the same classes', async () => {
+    expect(Job).toBe(Task)
+    expect(JobFailedError).toBe(TaskFailedError)
+    expect(JobTimeoutError).toBe(TaskTimeoutError)
+    const { client } = mockClient([
+      ok({ webhookId: 'task-id', status: 'created', pollUrl: '/v2/webhooks/task-id' })
+    ])
+    const handle = await client.contact.findEmail({ url: 'https://social.com/in/janedoe' })
+    expect(handle).toBeInstanceOf(Task)
+    expect(handle).toBeInstanceOf(Job)
+  })
+  it('match instanceof both ways and expose jobId as taskId', () => {
+    const timeout = new JobTimeoutError('task-id', 'in_progress')
+    expect(timeout).toBeInstanceOf(TaskTimeoutError)
+    expect(new TaskTimeoutError('task-id')).toBeInstanceOf(JobTimeoutError)
+    expect(timeout.name).toBe('TaskTimeoutError')
+    expect(timeout.message).toBe(
+      'Waiting for task task-id timed out. The task may still finish; resume waiting with its id.'
+    )
+    expect(timeout.jobId).toBe(timeout.taskId)
+    const failed = new JobFailedError('task-id', 'email-not-found', 1, null)
+    expect(failed).toBeInstanceOf(TaskFailedError)
+    expect(new TaskFailedError('task-id', null, 0, null)).toBeInstanceOf(JobFailedError)
+    expect(failed.jobId).toBe('task-id')
+    expect(failed.message).toBe('Task task-id failed: email-not-found')
   })
 })
 
@@ -288,7 +332,7 @@ describe('Lists safety and operation waiting', () => {
     ])
     const result = expect(
       client.lists.operations.wait('list', 'op', { timeout: 100 })
-    ).rejects.toBeInstanceOf(JobTimeoutError)
+    ).rejects.toBeInstanceOf(TaskTimeoutError)
     await vi.runAllTimersAsync()
     await result
   })
@@ -296,7 +340,7 @@ describe('Lists safety and operation waiting', () => {
 
 describe('remaining polling deadlines', () => {
   it.each([
-    'jobs',
+    'tasks',
     'lists'
   ])('%s stops if the deadline expires before a retry can start', async resource => {
     const { client, calls } = mockClient([
@@ -306,31 +350,31 @@ describe('remaining polling deadlines', () => {
       }
     ])
     await expect(
-      resource === 'jobs'
-        ? client.jobs.wait('id', { timeout: 1000 })
+      resource === 'tasks'
+        ? client.tasks.wait('id', { timeout: 1000 })
         : client.lists.operations.wait('list', 'id', { timeout: 1000 })
-    ).rejects.toBeInstanceOf(JobTimeoutError)
+    ).rejects.toBeInstanceOf(TaskTimeoutError)
     expect(calls).toHaveLength(1)
   })
   it.each([
-    'jobs',
+    'tasks',
     'lists'
   ])('%s rejects invalid overall timeouts before fetching', async resource => {
     const { client, calls } = mockClient([])
     for (const timeout of [0, -1, Infinity, NaN]) {
       await expect(
-        resource === 'jobs'
-          ? client.jobs.wait('id', { timeout })
+        resource === 'tasks'
+          ? client.tasks.wait('id', { timeout })
           : client.lists.operations.wait('list', 'id', { timeout })
       ).rejects.toMatchObject({ name: 'ReverseContactError' })
     }
     expect(calls).toHaveLength(0)
   })
   it.each([
-    'jobs',
+    'tasks',
     'lists'
   ])('%s shrinks wait across polls and retries, then aborts the in-flight poll', async resource => {
-    const pending = resource === 'jobs' ? job() : ok({ status: 'running', clientAction: 'poll' })
+    const pending = resource === 'tasks' ? job() : ok({ status: 'running', clientAction: 'poll' })
     const { client, calls } = mockClient(
       [
         pending,
@@ -340,13 +384,13 @@ describe('remaining polling deadlines', () => {
       { timeout: 1 }
     )
     const result = expect(
-      resource === 'jobs'
-        ? client.jobs.wait('id', { timeout: 5500 })
+      resource === 'tasks'
+        ? client.tasks.wait('id', { timeout: 5500 })
         : client.lists.operations.wait('list', 'id', { timeout: 5500 })
     ).rejects.toMatchObject({
-      name: 'JobTimeoutError',
-      jobId: 'id',
-      lastStatus: resource === 'jobs' ? 'in_progress' : 'running'
+      name: 'TaskTimeoutError',
+      taskId: 'id',
+      lastStatus: resource === 'tasks' ? 'in_progress' : 'running'
     })
     await vi.advanceTimersByTimeAsync(5499)
     expect(calls.map(call => call.url.searchParams.get('wait'))).toEqual(['5', '3', '2'])
@@ -356,28 +400,28 @@ describe('remaining polling deadlines', () => {
     expect(calls[2]?.init.signal?.aborted).toBe(true)
     expect(calls).toHaveLength(3)
   })
-  it.each(['jobs', 'lists'])('%s sends wait=0 for a subsecond deadline', async resource => {
+  it.each(['tasks', 'lists'])('%s sends wait=0 for a subsecond deadline', async resource => {
     const { client, calls } = mockClient([() => new Promise(() => {})])
     const result = expect(
-      resource === 'jobs'
-        ? client.jobs.wait('id', { timeout: 50 })
+      resource === 'tasks'
+        ? client.tasks.wait('id', { timeout: 50 })
         : client.lists.operations.wait('list', 'id', { timeout: 50 })
-    ).rejects.toBeInstanceOf(JobTimeoutError)
+    ).rejects.toBeInstanceOf(TaskTimeoutError)
     await vi.advanceTimersByTimeAsync(50)
     await result
     expect(calls[0]?.url.searchParams.get('wait')).toBe('0')
     expect(calls[0]?.init.signal?.aborted).toBe(true)
   })
   it.each([
-    'jobs',
+    'tasks',
     'lists'
   ])('%s keeps the poll timeout floor when the deadline permits', async resource => {
     const done =
-      resource === 'jobs' ? job('succeeded') : ok({ status: 'completed', clientAction: 'done' })
+      resource === 'tasks' ? job('succeeded') : ok({ status: 'completed', clientAction: 'done' })
     const { client, calls } = mockClient([() => new Promise(() => {}), done], { timeout: 1 })
     const result =
-      resource === 'jobs'
-        ? client.jobs.wait('id', { timeout: 100_000 })
+      resource === 'tasks'
+        ? client.tasks.wait('id', { timeout: 100_000 })
         : client.lists.operations.wait('list', 'id', { timeout: 100_000 })
     await vi.advanceTimersByTimeAsync(34_999)
     expect(calls[0]?.init.signal?.aborted).toBe(false)

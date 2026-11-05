@@ -17,13 +17,15 @@ export {
   PermissionDeniedError,
   RateLimitError,
   ReverseContactError,
+  TaskFailedError,
+  TaskTimeoutError,
   UnavailableForLegalReasonsError,
   UnprocessableEntityError
 } from './core/errors'
 export type { ClientOptions, Fetch, IdempotentRequestOptions, RequestOptions } from './core/http'
-export { Job } from './core/job'
 export { type ListIteratorOptions, Page, type SearchIteratorOptions } from './core/page'
 export type { WaitOptions } from './core/poll'
+export { Job, Task } from './core/task'
 export { parseWebhookDelivery, type WebhookDelivery } from './core/webhook'
 export * from './generated/catalogs'
 export type * from './types'

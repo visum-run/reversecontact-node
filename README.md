@@ -8,7 +8,7 @@ Reverse Contact is a B2B data API: enrich people and companies, fetch profiles, 
 and organizations, and find email addresses and phone numbers.
 
 This is the official TypeScript and JavaScript client for the Reverse Contact V2 API: typed
-results, automatic retries, cursor pagination, asynchronous jobs and Lists, with no runtime dependencies.
+results, automatic retries, cursor pagination, asynchronous tasks and Lists, with no runtime dependencies.
 
 [Documentation](https://docs.reversecontact.com/sdk/javascript) ·
 [API reference](https://docs.reversecontact.com/api-reference) ·
@@ -68,21 +68,21 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | `client.enrich` | `person`, `company` | The matched profile, or `null` when nothing matches |
 | `client.fetch` | `person`, `company` | A cached profile, or `null` when nothing matches |
 | | `checkPerson`, `checkCompany` | Whether a profile exists and how fresh it is (free) |
-| | `personLive`, `companyLive` | A `Job` that fetches a fresh profile |
+| | `personLive`, `companyLive` | A `Task` that fetches a fresh profile |
 | `client.search` | `people`, `peopleByPrompt`, `peopleLookalike` | A `Page` of people |
 | | `organizations`, `organizationsByPrompt` | A `Page` of organizations |
 | | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
 | | `countPeople`, `countOrganizations` | The number of matches (free) |
 | | `peopleAutoSuggestion` | The skills that start with what someone typed, for a search box in your own product (free) |
 | | `peopleFields`, `organizationsFields` | The available search filters (free) |
-| `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Job` that finds email addresses or phone numbers, or checks an email address |
-| `client.jobs` | `retrieve`, `wait` | One job snapshot, or the final job result |
+| `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Task` that finds email addresses or phone numbers, or checks an email address |
+| `client.tasks` | `retrieve`, `wait` | One task snapshot, or the final task result (`client.jobs` is a deprecated alias) |
 | `client.usage` | `retrieve` | Credit balance and rate limits, in `quotas` (free) |
 | `client.lists` | `list`, `create`, `retrieve`, `delete`, `export`, `importSignals` | Saved lists, their CSV export, and import operations |
 | | `listAll` | An async iterator over every list (free) |
 | `client.lists.members` | `list`, `add`, `remove`, `listAll` | The members of a list |
 | `client.lists.operations` | `retrieve`, `cancel`, `wait` | The progress of an import operation |
-| `client.bulk` | `enrichPersons`, `list`, `listAll`, `retrieve`, `wait`, `cancel` | Bulk enrich jobs of up to 25,000 people, and their progress |
+| `client.bulk` | `enrichPersons`, `list`, `listAll`, `retrieve`, `wait`, `cancel` | Bulk enrich tasks of up to 25,000 people, and every background task of the workspace |
 | | `results` | The results file as text: CSV, or NDJSON with `{ format: 'ndjson' }` (free) |
 | | `rows`, `iterateRows` | The results a page or an item at a time, as they become ready (free) |
 
@@ -176,48 +176,48 @@ const cached = await client.fetch.person(params)
 if (cached) {
   console.log(cached.data)
 } else {
-  const job = await client.fetch.personLive(params)
-  console.log('Persist this id:', job.id)
-  const completed = await job.wait()
+  const task = await client.fetch.personLive(params)
+  console.log('Persist this id:', task.id)
+  const completed = await task.wait()
   console.log(completed.data.result)
 }
 ```
 
-Live fetches are asynchronous. Save the job id before waiting so a restart does not create
-the same paid job again. The SDK does not validate Social URL domains.
+Live fetches are asynchronous. Save the task id before waiting so a restart does not create
+the same paid task again. The SDK does not validate Social URL domains.
 
 ### Find email addresses and phone numbers
 
 ```ts
-const emailJob = await client.contact.findEmail({
+const emailTask = await client.contact.findEmail({
   fullName: 'Jane Doe',
   companyDomain: 'example.com',
   emailType: 'professional'
 })
-const emails = await emailJob.wait()
+const emails = await emailTask.wait()
 for (const email of emails.data.result ?? []) console.log(email.value, email.type)
 
-const phoneJob = await client.contact.findPhone({ url: 'https://social.com/in/janedoe' })
-const phones = await phoneJob.wait()
+const phoneTask = await client.contact.findPhone({ url: 'https://social.com/in/janedoe' })
+const phones = await phoneTask.wait()
 
 // A person id from a search, fetch or enrich result replaces the URL.
-const idJob = await client.contact.findEmail({ id: 'prs_01jbd5vewyenebxgaz869ffe5t' })
+const idTask = await client.contact.findEmail({ id: 'prs_01jbd5vewyenebxgaz869ffe5t' })
 ```
 
 Each finder takes one person: `url`, `id` (a `prs_…` person id), or a name with
 `companyDomain`. An id that matches no person is refused with an `UnprocessableEntityError`
-before any job starts. Both finders return arrays of `{ value, type }` in the final job result. Some workspaces
+before any task starts. Both finders return arrays of `{ value, type }` in the final task result. Some workspaces
 cannot use the phone endpoint; a `GoneError` exposes the API's `alternative` when provided.
 
 ### Verify an email address
 
 ```ts
-const verifyJob = await client.contact.verifyEmail({ email: 'jane@example.com' })
-const verdict = await verifyJob.wait()
+const verifyTask = await client.contact.verifyEmail({ email: 'jane@example.com' })
+const verdict = await verifyTask.wait()
 console.log(verdict.data.result?.status)
 ```
 
-The final job result holds `email` and `status`, one of `valid`, `risky`, `invalid` or `unknown`
+The final task result holds `email` and `status`, one of `valid`, `risky`, `invalid` or `unknown`
 (exported as `EmailVerificationStatus`).
 
 #### Safe retries
@@ -225,16 +225,16 @@ The final job result holds `email` and `status`, one of `valid`, `risky`, `inval
 The contact submits (`findEmail`, `findPhone`, `verifyEmail`) send a fresh UUID v4 as `Idempotency-Key` for each call and reuse it
 across all automatic retries. The API keeps a successful acknowledgement for 24 hours,
 scoped to the workspace and endpoint. Reusing a key with the same body returns that
-acknowledgement without starting or charging for another job.
+acknowledgement without starting or charging for another task.
 
 Persist your own key with the request body to survive a process restart:
 
 ```ts
-const retryableJob = await client.contact.findEmail({
+const retryableTask = await client.contact.findEmail({
   fullName: 'Jane Doe',
   companyDomain: 'example.com'
 }, { idempotencyKey: 'email-request-2026-10-29-001' })
-console.log(retryableJob.replayed)
+console.log(retryableTask.replayed)
 ```
 
 An explicit `Idempotency-Key` request header is also accepted; the `idempotencyKey` option
@@ -244,11 +244,11 @@ has priority. Keys must contain 1 to 255 printable ASCII characters, without spa
   failures with the same key.
 - HTTP 409 `IDEMPOTENCY_KEY_IN_USE` waits for `Retry-After` within `maxRetries`.
 - HTTP 422 `IDEMPOTENCY_KEY_REUSED` and 400 `INVALID_IDEMPOTENCY_KEY` are never retried.
-- `job.replayed` is true when the acknowledgement has `Idempotent-Replayed: true`;
-  the original header remains available in `job.response.headers`.
-- A terminal job failure does not create a new job automatically.
-- After 24 hours, reusing a key can start and charge for a new job; resume a known job id
-  with `client.jobs.wait`.
+- `task.replayed` is true when the acknowledgement has `Idempotent-Replayed: true`;
+  the original header remains available in `task.response.headers`.
+- A terminal task failure does not create a new task automatically.
+- After 24 hours, reusing a key can start and charge for a new task; resume a known task id
+  with `client.tasks.wait`.
 
 ### Credit balance and rate limits
 
@@ -311,29 +311,41 @@ The CSV export returns a string. Member removal sends its JSON body with DELETE.
 ```ts
 const submitted = await client.bulk.enrichPersons({
   items: [{ email: 'jane@example.com', externalId: 'crm-42' }],
-  families: ['profile']
+  families: ['profile'],
+  taskName: 'CRM sync'
 })
-const jobId = submitted.data.job.id
+const taskId = submitted.data.task.id
 
-// Each result in the order sent, as soon as it is ready, while the job runs.
-for await (const line of client.bulk.iterateRows(jobId)) {
+// Each result in the order sent, as soon as it is ready, while the task runs.
+for await (const line of client.bulk.iterateRows(taskId)) {
   console.log(line.row, line.status, line.person)
 }
 
-// Or the whole file once the job is completed or cancelled.
-await client.bulk.wait(jobId)
-const ndjson = await client.bulk.results(jobId, { format: 'ndjson' })
+// Or the whole file once the task is completed or cancelled.
+await client.bulk.wait(taskId)
+const ndjson = await client.bulk.results(taskId, { format: 'ndjson' })
 ```
 
-`bulk.rows(jobId, { cursor, limit })` reads one page of `JobResultLine` items (at most 100), with
-the job status in `extras.status`. While the job runs, a page stops at the first item not
+`bulk.enrichPersons` posts to `/v2/bulk` and answers with the task in `data.task`; `taskName` names it in the
+task history (default `Sent via API`). `bulk.list`, `bulk.retrieve`, `bulk.wait` and `bulk.cancel` read and stop
+every background task of the workspace under `/v2/tasks`: each is a `BulkTask`, whose `taskName` is the file name
+or the `taskName` given at creation.
+
+`bulk.rows(taskId, { cursor, limit })` reads one page of `TaskResultLine` items (at most 100), with
+the task status in `extras.status`. While the task runs, a page stops at the first item not
 finished; `iterateRows` then waits `Retry-After` (2 seconds by default) and reads the same cursor
-again. It ends when `nextCursor` is null, or when the job is paused: read on later with `rows`.
-A cancelled job still finishes the items it had started, within the hour: `iterateRows` waits for
+again. It ends when `nextCursor` is null, or when the task is paused: read on later with `rows`.
+A cancelled task still finishes the items it had started, within the hour: `iterateRows` waits for
 them, while `results` already gives them with the status `running`.
 `results` returns the file as text, the CSV by default or one JSON object per line with
-`{ format: 'ndjson' }`. A job stored before these formats existed answers `ConflictError`
-(`JOB_RESULTS_FORMAT_UNAVAILABLE`); its CSV stays available.
+`{ format: 'ndjson' }`. A task stored before these formats existed answers `ConflictError`
+(`TASK_RESULTS_FORMAT_UNAVAILABLE`); its CSV stays available. An unknown task id answers
+`NotFoundError` (`TASK_NOT_FOUND`).
+
+With `webhookUrl`, that URL receives one POST when the task settles, with the event `task.updated` in its body and
+in the `x-reversecontact-event` header: `{ event, taskId, type, status, pollUrl, resultsUrl, occurredAt }`. It
+carries no results, and the same event can arrive twice: key it on `taskId` and `status`. This body is not the
+`{ webhookId, data }` delivery of live fetches and contact lookups, so `parseWebhookDelivery` does not apply to it.
 
 ## Configuration
 
@@ -381,7 +393,7 @@ a body or query, options follow the path ids directly:
 
 ```ts
 const controller = new AbortController()
-await client.jobs.retrieve('job-id', { wait: 20 }, {
+await client.tasks.retrieve('task-id', { wait: 20 }, {
   timeout: 95_000,
   maxRetries: 1,
   signal: controller.signal
@@ -415,21 +427,21 @@ The free `lists.listAll` and `lists.members.listAll` iterators do not require a 
 You may still supply `{ maxResults: 50 }` as their last argument.
 Their default page sizes are 200 and 100 respectively.
 
-## Jobs, deadlines, and cancellation
+## Tasks, deadlines, and cancellation
 
 ```ts
-const snapshot = await client.jobs.retrieve('stored-job-id', { wait: 20 })
-const finished = await client.jobs.wait('stored-job-id', {
+const snapshot = await client.tasks.retrieve('stored-task-id', { wait: 20 })
+const finished = await client.tasks.wait('stored-task-id', {
   timeout: 30 * 60 * 1000,
   pollWait: 20,
   onPoll: snapshot => console.log(snapshot.data.status)
 })
 ```
 
-Live fetch and contact calls return a generic `Job<T>`. It exposes `id`, `webhookId`,
+Live fetch and contact calls return a generic `Task<T>`. It exposes `id`, `webhookId`,
 `status`, `pollUrl`, `replayed`, `data` (the acknowledgement), `quotas`, `metadata`, and `response`.
-`job.retrieve({ wait? }, options?)` reads one snapshot; `job.wait(options?)` and
-`jobs.wait(id, options?)` return the final response, including `data.status`,
+`task.retrieve({ wait? }, options?)` reads one snapshot; `task.wait(options?)` and
+`tasks.wait(id, options?)` return the final response, including `data.status`,
 `data.result`, `data.creditsConsumed`, `data.eventType`, and `data.deliveryStatus`.
 
 Waiting uses long polls with `wait=20` by default. `pollWait` must be an integer from 0
@@ -441,22 +453,28 @@ measured between poll starts. A held poll can be followed immediately by another
 Polling retries up to five consecutive failing HTTP requests, independently of the
 creating request's retry budget, and resets that counter after a successful HTTP response.
 
-The default overall waiting deadline is 30 minutes. `JobTimeoutError` carries `jobId`
-and `lastStatus`: the server job may still finish. Resume with `jobs.wait`.
-Use `signal` to cancel HTTP requests, retry sleeps, and job waiting. Cancellation raises
-`APIConnectionError` and stops local waiting; it does not cancel a server job.
+The default overall waiting deadline is 30 minutes. `TaskTimeoutError` carries `taskId`
+and `lastStatus`: the server task may still finish. Resume with the wait that raised it:
+`tasks.wait`, `bulk.wait` or `lists.operations.wait`.
+Use `signal` to cancel HTTP requests, retry sleeps, and task waiting. Cancellation raises
+`APIConnectionError` and stops local waiting; it does not cancel a server task.
 
-A terminal `errored` status raises `JobFailedError`, which exposes `jobId`, `errorCode`,
+A terminal `errored` status raises `TaskFailedError`, which exposes `taskId`, `errorCode`,
 `creditsConsumed`, `result` (which may contain partial data), and `notFound`.
-A non-null `deliveryStatus` on a succeeded job does not make the job fail.
-Expired results raise `GoneError`; unknown job ids raise `NotFoundError`.
-The SDK never creates a replacement job after a terminal failure, even for
-`fetch-data-error` or `result-unavailable`. The caller decides whether to pay for a new job.
+A non-null `deliveryStatus` on a succeeded task does not make the task fail.
+Expired results raise `GoneError`; unknown task ids raise `NotFoundError`.
+The SDK never creates a replacement task after a terminal failure, even for
+`fetch-data-error` or `result-unavailable`. The caller decides whether to pay for a new task.
+
+The former names still work and are deprecated: `client.jobs` is `client.tasks`, `Job` is `Task`,
+`JobFailedError` and `JobTimeoutError` are `TaskFailedError` and `TaskTimeoutError` (their `jobId`
+reads `taskId`), and the types `JobStatus`, `JobSnapshot<T>` and `JobAcknowledgement` are
+`TaskStatus`, `TaskSnapshot<T>` and `TaskAcknowledgement`.
 
 ## Errors and retries
 
 ```ts
-import { APIError, DailyLimitError, KeyCreditLimitError, JobTimeoutError } from '@reverse-contact/sdk'
+import { APIError, DailyLimitError, KeyCreditLimitError, TaskTimeoutError } from '@reverse-contact/sdk'
 
 try {
   await client.usage.retrieve()
@@ -518,11 +536,11 @@ The default is four retries after the initial attempt:
   HTTP 409 `IDEMPOTENCY_KEY_IN_USE`, honoring `Retry-After`; other 409 errors are raised.
 
 Set `maxRetries: 0` to disable request retries. An HTTP retry is distinct from creating
-a new job after a completed job has failed.
+a new task after a completed task has failed.
 
 ## Webhook deliveries
 
-Pass `webhookUrl` when creating a live fetch or contact job to receive a push delivery.
+Pass `webhookUrl` when creating a live fetch or contact task to receive a push delivery.
 The body is `{ webhookId, data }`, separate from the normal V2 response envelope:
 
 ```ts
@@ -535,7 +553,7 @@ console.log(delivery.webhookId, delivery.isError, delivery.data)
 The helper validates the wrapper and preserves data. If present, `data.errorCode` must be
 a string or null; `isError` is true only for a non-empty string.
 A generic type parameter can describe your endpoint's result; it does not
-perform deep profile validation. Use HTTPS, correlate with your stored job id,
+perform deep profile validation. Use HTTPS, correlate with your stored task id,
 deduplicate on `webhookId`, answer 2xx within 10 seconds, and process asynchronously.
 See the [webhooks guide](https://docs.reversecontact.com/guides/webhooks).
 
@@ -543,7 +561,7 @@ See the [webhooks guide](https://docs.reversecontact.com/guides/webhooks).
 
 Types are generated from the Reverse Contact OpenAPI description. Public aliases include
 `Person`, `Company`, `EnrichPersonParams`, `SearchPeopleParams`, `SearchOrganizationsParams`,
-`JobStatus`, `JobSnapshot<T>`, `Usage`, `List`, `ListMember`, `ListOperation`, `Quotas`, and `Metadata`.
+`TaskStatus`, `TaskSnapshot<T>`, `TaskAcknowledgement`, `Usage`, `List`, `ListMember`, `ListOperation`, `Quotas`, and `Metadata`.
 Use `Body<'operationId'>`, `Query<'operationId'>`, `Data<'operationId'>`, or the exported
 `components`, `operations`, and `paths` types for the complete schema surface.
 Quota types model runtime nullable fields independently of the schema. Response parsing
@@ -554,9 +572,9 @@ keeps unknown fields and does not replace nulls or empty values.
 - Keep keys server-side, with one key per environment.
 - Use free counts to estimate search volume before retrieving paid rows.
 - Read cached profiles before requesting live fetches, and handle nullable no-match results.
-- Persist job ids before waiting; resume them after a restart.
+- Persist task ids before waiting; resume them after a restart.
 - Pace bulk requests using `quotas.workspace.minuteRateLimit` and your plan's limits.
-- Log request ids and job ids; monitor balance, repeated quota errors, and server errors.
+- Log request ids and task ids; monitor balance, repeated quota errors, and server errors.
 - Prefer the default 90-second HTTP timeout: legitimate enrichment requests can exceed 60 seconds.
 
 See [authentication](https://docs.reversecontact.com/authentication),
@@ -591,7 +609,7 @@ moving to a new minor version.
 - Questions about your account, credits, or API results: email
   [support@reversecontact.com](mailto:support@reversecontact.com).
 
-Include the request id (`metadata.requestId`, or `requestId` on an error) and any job id.
+Include the request id (`metadata.requestId`, or `requestId` on an error) and any task id.
 
 ## Contributing
 

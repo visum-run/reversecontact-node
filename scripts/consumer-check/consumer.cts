@@ -5,7 +5,7 @@ void client.withOptions({ timeout: 1000 }).usage.retrieve({ headers: { 'X-Test':
 void client.search.countPeople({ currentSeniority: [sdk.Seniority.OWNER_FOUNDER, 'Board'] })
 void client.contact
   .findPhone({ url: 'https://social.com/in/jane' }, { idempotencyKey: 'stable-id' })
-  .then(job => {
-    const replayed: boolean = job.replayed
+  .then(task => {
+    const replayed: boolean = task.replayed
     return replayed
   })

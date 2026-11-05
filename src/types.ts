@@ -85,20 +85,27 @@ export type FetchCompanyParams = Body<'fetchCompany'>
 export type FindEmailParams = Body<'findContactEmail'>
 export type VerifyEmailParams = Body<'verifyContactEmail'>
 export type FindPhoneParams = Body<'findContactPhone'>
-export type JobStatus = components['schemas']['PollWebhookData']['status']
-export type JobAcknowledgement = Required<components['schemas']['JobAckData']>
-export type JobSnapshot<T = unknown> = Omit<components['schemas']['PollWebhookData'], 'result'> & {
+export type TaskStatus = components['schemas']['PollWebhookData']['status']
+export type TaskAcknowledgement = Required<components['schemas']['TaskAckData']>
+export type TaskSnapshot<T = unknown> = Omit<components['schemas']['PollWebhookData'], 'result'> & {
   result: T | null
 }
+/** @deprecated Use `TaskStatus`. */
+export type JobStatus = TaskStatus
+/** @deprecated Use `TaskAcknowledgement`. */
+export type JobAcknowledgement = TaskAcknowledgement
+/** @deprecated Use `TaskSnapshot`. */
+export type JobSnapshot<T = unknown> = TaskSnapshot<T>
 export type ContactValue = { value: string; type: string }
 export type EmailVerification = components['schemas']['ContactEmailVerifyResult']
 export type Usage = Result<null>
 export type List = Data<'createList'>
 export type ListMember = Data<'listListMembers'>['items'][number]
 export type ListOperation = Data<'getListOperation'>
-export type BulkJob = Data<'getJob'>
+/** A background task of the workspace (`/v2/tasks`): a Bulk enrich, a List import or enrichment, a Search export. */
+export type BulkTask = Data<'getTask'>
 export type BulkEnrichPersonsParams = Body<'bulkEnrichPersons'>
-/** One item of a Bulk enrich job's results: a line of the NDJSON file, an item of `bulk.rows`. */
-export type JobResultLine = components['schemas']['JobResultLine']
-/** One page of `bulk.rows`: `items`, `nextCursor`, and the job `status` when it was read. */
-export type BulkJobRows = Data<'getJobRows'>
+/** One item of a Bulk enrich task's results: a line of the NDJSON file, an item of `bulk.rows`. */
+export type TaskResultLine = components['schemas']['TaskResultLine']
+/** One page of `bulk.rows`: `items`, `nextCursor`, and the task `status` when it was read. */
+export type BulkTaskRows = Data<'getTaskRows'>

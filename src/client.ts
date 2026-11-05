@@ -3,9 +3,9 @@ import { Bulk } from './resources/bulk'
 import { Contact } from './resources/contact'
 import { Enrich } from './resources/enrich'
 import { Fetch } from './resources/fetch'
-import { Jobs } from './resources/jobs'
 import { Lists } from './resources/lists'
 import { Search } from './resources/search'
+import { Tasks } from './resources/tasks'
 import { Usage } from './resources/usage'
 
 export class ReverseContact {
@@ -13,7 +13,10 @@ export class ReverseContact {
   readonly fetch: Fetch
   readonly search: Search
   readonly contact: Contact
-  readonly jobs: Jobs
+  /** Async tasks (live fetches, contact lookups) by id: `retrieve` and `wait`. */
+  readonly tasks: Tasks
+  /** @deprecated Use `tasks`: the same object under its former name. */
+  readonly jobs: Tasks
   readonly usage: Usage
   readonly lists: Lists
   readonly bulk: Bulk
@@ -26,7 +29,8 @@ export class ReverseContact {
     this.fetch = new Fetch(transport)
     this.search = new Search(transport)
     this.contact = new Contact(transport)
-    this.jobs = new Jobs(transport)
+    this.tasks = new Tasks(transport)
+    this.jobs = this.tasks
     this.usage = new Usage(transport)
     this.lists = new Lists(transport)
     this.bulk = new Bulk(transport)

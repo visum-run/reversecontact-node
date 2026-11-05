@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 (2026-11-05)
+
+- Breaking: the background jobs of the Bulk API are now called tasks, with no compatibility for the old routes. `client.bulk` keeps every method name (`enrichPersons`, `list`, `listAll`, `retrieve`, `wait`, `results`, `rows`, `iterateRows`, `cancel`); what changes:
+  - `bulk.enrichPersons` posts to `/v2/bulk` (was `/v2/enrich/persons/bulk`) and the other methods call `/v2/tasks`, `/v2/tasks/{taskId}`, `/v2/tasks/{taskId}/results`, `/v2/tasks/{taskId}/rows` and `/v2/tasks/{taskId}/cancel` (were under `/v2/jobs`).
+  - `bulk.enrichPersons` takes `taskName` (was `name`) and its answer holds the task in `data.task` (was `data.job`).
+  - The task object carries `taskName` (was `name`); its `links.self` and `links.results` point to `/v2/tasks/<id>`.
+  - Renamed types: `BulkJob` is `BulkTask`, `JobResultLine` is `TaskResultLine`, `BulkJobRows` is `BulkTaskRows`. The operation ids of `Body`, `Query` and `Data` are `listTasks`, `getTask`, `getTaskResults`, `getTaskRows` and `cancelTask` (were `listJobs`, `getJob`, `getJobResults`, `getJobRows` and `cancelJob`); `bulkEnrichPersons` is unchanged.
+  - Error codes say TASK: `TASK_NOT_FOUND`, `TASK_INVALID_INPUT`, `TASK_NOT_CANCELLABLE`, `TASK_RESULTS_NOT_READY`, `TASK_RESULTS_FORMAT_UNAVAILABLE`, `TASK_ROWS_BUSY`, `TASK_STARTED_BY_A_PERSON`, `TASK_MAX_CREDITS`, and `BULK_TASK_*` for the former `BULK_JOB_*` codes (for example `BULK_TASK_INSUFFICIENT_CREDITS`).
+  - The webhook sent when a task created with `webhookUrl` settles is the event `task.updated` (was `job.updated`), with `taskId` (was `jobId`); `pollUrl` and `resultsUrl` point to `/v2/tasks/<id>`.
+- The async tasks of live fetches and contact lookups say task too; every former name stays exported as a deprecated alias of the same object, class or type:
+  - `client.tasks` reads and waits for them by id (`retrieve`, `wait`, on `GET /v2/webhooks/{webhookId}`); `client.jobs` is the same object, kept as a deprecated alias.
+  - `fetch.personLive`, `fetch.companyLive` and the `contact` methods return a `Task` (was `Job`, kept as an alias, so `instanceof Job` still matches).
+  - `TaskTimeoutError` and `TaskFailedError` carry `taskId` (`jobId` reads the same value); `JobTimeoutError` and `JobFailedError` are the same classes, so `instanceof` works with either name. Their `name` and message now say task.
+  - The types are `TaskAcknowledgement`, `TaskSnapshot<T>` and `TaskStatus`; `JobAcknowledgement`, `JobSnapshot<T>` and `JobStatus` stay as aliases. In `components`, the acknowledgement schema is `TaskAckData` (was `JobAckData`).
+- `lists.importSignals` answers with the task record in `data.task` (was `data.job`).
+- The types describe the CSV of `lists.export` as the API returns it: members and Not found rows mixed in the order they were added (previously: members, then Not found rows).
+
 ## 0.3.0 (2026-11-04)
 
 - `bulk.rows` reads the results of a Bulk enrich job a page at a time (`cursor`, `limit` up to 100), in the order sent, from the start of the run; each item is a `JobResultLine` and the page carries the job status in `extras.status`. `bulk.iterateRows` yields the results one at a time as they become ready: it waits `Retry-After` while the next item runs, and ends with the job or when it is paused; a cancelled job first finishes the items it had started, within the hour. Free.

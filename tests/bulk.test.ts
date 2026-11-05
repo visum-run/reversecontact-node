@@ -27,7 +27,7 @@ function line(row: number): object {
 
 describe('bulk', () => {
   it('reuses its generated idempotency key across retries and creates a fresh one per call', async () => {
-    const { client, calls } = mockClient([failure(503), ok({ job: { id: 'one' } }), ok()])
+    const { client, calls } = mockClient([failure(503), ok({ task: { id: 'one' } }), ok()])
     const result = client.bulk.enrichPersons(CREATE)
     await vi.runAllTimersAsync()
     await result
@@ -38,14 +38,43 @@ describe('bulk', () => {
     expect(keys[2]).not.toBe(keys[0])
   })
 
-  it('submits to the bulk route of the unit endpoint and follows the job under /v2/jobs', async () => {
-    const { client, calls } = mockClient([ok({ job: { id: 'one' } }), ok({ id: 'one' })])
+  it('submits to /v2/bulk and follows the task under /v2/tasks', async () => {
+    const { client, calls } = mockClient([ok({ task: { id: 'one' } }), ok({ id: 'one' })])
     await client.bulk.enrichPersons(CREATE)
     await client.bulk.retrieve('one')
-    expect(calls.map(call => new URL(call.url).pathname)).toEqual([
-      '/v2/enrich/persons/bulk',
-      '/v2/jobs/one'
+    expect(calls.map(call => new URL(call.url).pathname)).toEqual(['/v2/bulk', '/v2/tasks/one'])
+  })
+
+  it('sends taskName and reads the task of the 202 answer', async () => {
+    const { client, calls } = mockClient([
+      ok(
+        {
+          task: {
+            id: 'one',
+            taskName: 'CRM sync',
+            status: 'queued',
+            links: { self: '/v2/tasks/one', results: null, operation: null }
+          },
+          duplicateCount: 0,
+          creditsEstimated: 1,
+          notRunForCredits: 0
+        },
+        {},
+        202
+      )
     ])
+    const submitted = await client.bulk.enrichPersons({ ...CREATE, taskName: 'CRM sync' })
+    expect(JSON.parse(String(calls[0]?.init.body))).toEqual({ ...CREATE, taskName: 'CRM sync' })
+    expect(calls[0]?.init.method).toBe('POST')
+    expect(submitted.data.task.id).toBe('one')
+    expect(submitted.data.task.taskName).toBe('CRM sync')
+    expect(submitted.data.task.links.self).toBe('/v2/tasks/one')
+  })
+
+  it('reads taskName on the task object', async () => {
+    const { client } = mockClient([ok({ id: 'one', taskName: 'Sent via API', status: 'running' })])
+    const task = await client.bulk.retrieve('one')
+    expect(task.data.taskName).toBe('Sent via API')
   })
 
   it('uses a caller-provided idempotency key', async () => {
@@ -54,7 +83,7 @@ describe('bulk', () => {
     expect(new Headers(calls[0]?.init.headers).get('Idempotency-Key')).toBe('caller-key')
   })
 
-  it('waits while the job is queued or running, paced by Retry-After', async () => {
+  it('waits while the task is queued or running, paced by Retry-After', async () => {
     const { client, calls } = mockClient([
       ok({ id: 'b', status: 'queued' }, { 'Retry-After': '3' }),
       ok({ id: 'b', status: 'running' }),
@@ -64,7 +93,7 @@ describe('bulk', () => {
     await vi.runAllTimersAsync()
     expect((await result).data.status).toBe('completed')
     expect(calls).toHaveLength(3)
-    expect(calls[0]?.url.pathname).toBe('/v2/jobs/b')
+    expect(calls[0]?.url.pathname).toBe('/v2/tasks/b')
     expect(calls[0]?.url.searchParams.get('wait')).toBe('10')
     expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(3000)
     expect((calls[2]?.started ?? 0) - (calls[1]?.started ?? 0)).toBe(2000)
@@ -74,7 +103,7 @@ describe('bulk', () => {
     'paused',
     'cancelled',
     'failed'
-  ])('returns a %s job without polling again', async status => {
+  ])('returns a %s task without polling again', async status => {
     const { client, calls } = mockClient([ok({ id: 'b', status })])
     const result = await client.bulk.wait('b')
     expect(result.data.status).toBe(status)
@@ -87,8 +116,8 @@ describe('bulk', () => {
       ok({ items: [{ id: 'three' }], nextCursor: null })
     ])
     const ids: string[] = []
-    for await (const job of client.bulk.listAll({ type: 'enrich_persons', perPage: 2 }))
-      ids.push(job.id)
+    for await (const task of client.bulk.listAll({ type: 'enrich_persons', perPage: 2 }))
+      ids.push(task.id)
     expect(ids).toEqual(['one', 'two', 'three'])
     expect(calls[1]?.url.searchParams.get('cursor')).toBe('next')
     expect(calls[1]?.url.searchParams.get('type')).toBe('enrich_persons')
@@ -100,7 +129,7 @@ describe('bulk', () => {
       new Response(body, { headers: { 'Content-Type': 'text/csv; charset=utf-8' } })
     ])
     expect(await client.bulk.results('b')).toBe(body)
-    expect(calls[0]?.url.pathname).toBe('/v2/jobs/b/results')
+    expect(calls[0]?.url.pathname).toBe('/v2/tasks/b/results')
   })
 
   it('gives the NDJSON results as text when asked for them', async () => {
@@ -116,21 +145,21 @@ describe('bulk', () => {
         .split('\n')
         .map(value => JSON.parse(value).row)
     ).toEqual([1, 2])
-    expect(calls[0]?.url.pathname).toBe('/v2/jobs/b/results')
+    expect(calls[0]?.url.pathname).toBe('/v2/tasks/b/results')
     expect(calls[0]?.url.searchParams.get('format')).toBe('ndjson')
   })
 
-  it('reads one page of rows with its cursor, limit and job status', async () => {
+  it('reads one page of rows with its cursor, limit and task status', async () => {
     const { client, calls } = mockClient([
       ok({ items: [line(3), line(4)], nextCursor: 'after-4', status: 'running' }),
       ok({ items: [line(5)], nextCursor: null, status: 'completed' })
     ])
-    const rows = await client.bulk.rows('job /1', { cursor: 'after-2', limit: 2 })
+    const rows = await client.bulk.rows('task /1', { cursor: 'after-2', limit: 2 })
     expect(rows).toBeInstanceOf(Page)
     expect(rows.data.map(item => item.row)).toEqual([3, 4])
     expect(rows.nextCursor).toBe('after-4')
     expect(rows.extras.status).toBe('running')
-    expect(calls[0]?.url.pathname).toBe('/v2/jobs/job%20%2F1/rows')
+    expect(calls[0]?.url.pathname).toBe('/v2/tasks/task%20%2F1/rows')
     expect(Object.fromEntries(calls[0]?.url.searchParams ?? [])).toEqual({
       cursor: 'after-2',
       limit: '2'
@@ -155,7 +184,7 @@ describe('bulk', () => {
     const rows = collect(client.bulk.iterateRows('b', { limit: 2 }))
     await vi.runAllTimersAsync()
     expect((await rows).map(item => item.row)).toEqual([1, 2, 3, 4])
-    expect(calls.map(call => call.url.pathname)).toEqual(Array(5).fill('/v2/jobs/b/rows'))
+    expect(calls.map(call => call.url.pathname)).toEqual(Array(5).fill('/v2/tasks/b/rows'))
     expect(calls.map(call => call.url.searchParams.get('cursor'))).toEqual([
       null,
       'at-3',
@@ -171,7 +200,7 @@ describe('bulk', () => {
 
   it('retries a page of rows the server is too busy to read, after Retry-After', async () => {
     const { client, calls } = mockClient([
-      failure(429, 'JOB_ROWS_BUSY', { retryAfter: 1 }, { 'Retry-After': '1' }),
+      failure(429, 'TASK_ROWS_BUSY', { retryAfter: 1 }, { 'Retry-After': '1' }),
       ok({ items: [line(1)], nextCursor: null, status: 'completed' })
     ])
     const rows = client.bulk.rows('b')
@@ -181,7 +210,7 @@ describe('bulk', () => {
     expect((calls[1]?.started ?? 0) - (calls[0]?.started ?? 0)).toBe(1000)
   })
 
-  it('stops iterating the rows of a paused job without waiting', async () => {
+  it('stops iterating the rows of a paused task without waiting', async () => {
     const { client, calls } = mockClient([
       ok({ items: [line(1)], nextCursor: 'at-2', status: 'running' }),
       ok({ items: [], nextCursor: 'at-2', status: 'paused' }, { 'Retry-After': '2' })

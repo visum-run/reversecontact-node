@@ -11,56 +11,51 @@ import {
 } from '../core/page'
 import { poll, retrievePoll, type WaitOptions } from '../core/poll'
 import { randomUUID } from '../core/uuid'
-import type { Body, BulkJob, Data, JobResultLine, Query, Result } from '../types'
+import type { Body, BulkTask, Data, Query, Result, TaskResultLine } from '../types'
 
-/** Bulk enrich people, and follow every background job of the workspace (`/v2/jobs`). */
+/** Bulk enrich people, and follow every background task of the workspace (`/v2/tasks`). */
 export class Bulk {
   constructor(private readonly transport: Transport) {}
   async enrichPersons(
     params: Body<'bulkEnrichPersons'>,
     options?: IdempotentRequestOptions
   ): Promise<Result<Data<'bulkEnrichPersons'>>> {
-    // One key for every retry: the job reserves credits, a retried POST must not create a second one.
+    // One key for every retry: the task reserves credits, a retried POST must not create a second one.
     const headers = new Headers(options?.headers)
     headers.set(
       'Idempotency-Key',
       options?.idempotencyKey ?? headers.get('Idempotency-Key') ?? randomUUID()
     )
-    return this.transport.request<Data<'bulkEnrichPersons'>>(
-      'POST',
-      '/v2/enrich/persons/bulk',
-      params,
-      {
-        ...options,
-        headers
-      }
-    )
+    return this.transport.request<Data<'bulkEnrichPersons'>>('POST', '/v2/bulk', params, {
+      ...options,
+      headers
+    })
   }
 
   list(
-    params: Query<'listJobs'> = {},
+    params: Query<'listTasks'> = {},
     options?: RequestOptions
-  ): Promise<Page<PageItem<Data<'listJobs'>>, Interpretation<Data<'listJobs'>>>> {
-    return page<Data<'listJobs'>>(this.transport, 'GET', '/v2/jobs', params, options)
+  ): Promise<Page<PageItem<Data<'listTasks'>>, Interpretation<Data<'listTasks'>>>> {
+    return page<Data<'listTasks'>>(this.transport, 'GET', '/v2/tasks', params, options)
   }
 
   retrieve(
-    jobId: string,
-    params: Query<'getJob'> = {},
+    taskId: string,
+    params: Query<'getTask'> = {},
     options?: RequestOptions
-  ): Promise<Result<Data<'getJob'>>> {
-    return this.progress(jobId, params, options)
+  ): Promise<Result<Data<'getTask'>>> {
+    return this.progress(taskId, params, options)
   }
 
   private progress(
-    jobId: string,
-    params: Query<'getJob'>,
+    taskId: string,
+    params: Query<'getTask'>,
     options?: RequestOptions,
     deadline?: number
-  ): Promise<Result<BulkJob>> {
+  ): Promise<Result<BulkTask>> {
     return retrievePoll(
       this.transport,
-      `/v2/jobs/${encodeURIComponent(jobId)}`,
+      `/v2/tasks/${encodeURIComponent(taskId)}`,
       params,
       options,
       deadline
@@ -68,18 +63,18 @@ export class Bulk {
   }
 
   /**
-   * The results file as text, once the job is completed or cancelled (`links.results` is set):
-   * the CSV by default, or with `{ format: 'ndjson' }` one `JobResultLine` JSON object per line.
+   * The results file as text, once the task is completed or cancelled (`links.results` is set):
+   * the CSV by default, or with `{ format: 'ndjson' }` one `TaskResultLine` JSON object per line.
    */
   results(
-    jobId: string,
-    params: Query<'getJobResults'> = {},
+    taskId: string,
+    params: Query<'getTaskResults'> = {},
     options?: RequestOptions
   ): Promise<string> {
     return this.transport
       .request<string>(
         'GET',
-        `/v2/jobs/${encodeURIComponent(jobId)}/results`,
+        `/v2/tasks/${encodeURIComponent(taskId)}/results`,
         params,
         options,
         true
@@ -88,38 +83,38 @@ export class Bulk {
   }
 
   /**
-   * One page of results, in the order sent, readable from the start of the run. While the job
+   * One page of results, in the order sent, readable from the start of the run. While the task
    * runs, a page stops at the first item not finished: `data` is empty and `nextCursor` is set
    * while the next item runs (read it again after `Retry-After`). `nextCursor` is null once
-   * nothing more will come. `extras.status` is the job status when the page was read.
+   * nothing more will come. `extras.status` is the task status when the page was read.
    */
   rows(
-    jobId: string,
-    params: Query<'getJobRows'> = {},
+    taskId: string,
+    params: Query<'getTaskRows'> = {},
     options?: RequestOptions
-  ): Promise<Page<PageItem<Data<'getJobRows'>>, Interpretation<Data<'getJobRows'>>>> {
-    return page<Data<'getJobRows'>>(
+  ): Promise<Page<PageItem<Data<'getTaskRows'>>, Interpretation<Data<'getTaskRows'>>>> {
+    return page<Data<'getTaskRows'>>(
       this.transport,
       'GET',
-      `/v2/jobs/${encodeURIComponent(jobId)}/rows`,
+      `/v2/tasks/${encodeURIComponent(taskId)}/rows`,
       params,
       options
     )
   }
 
   /**
-   * The results one item at a time, as they become ready, whatever the job is doing: it waits
+   * The results one item at a time, as they become ready, whatever the task is doing: it waits
    * while the next item runs (`Retry-After`, 2 seconds by default) and reads the same position
-   * again. Ends with the job, or when it is paused, since nothing moves until someone resumes
-   * it: read on later with `rows` and the last cursor. A cancelled job still finishes the items
+   * again. Ends with the task, or when it is paused, since nothing moves until someone resumes
+   * it: read on later with `rows` and the last cursor. A cancelled task still finishes the items
    * it had started, within the hour: it waits for them too.
    */
   async *iterateRows(
-    jobId: string,
-    params: Query<'getJobRows'> = {},
+    taskId: string,
+    params: Query<'getTaskRows'> = {},
     options?: RequestOptions
-  ): AsyncGenerator<JobResultLine, void, unknown> {
-    let current = await this.rows(jobId, params, options)
+  ): AsyncGenerator<TaskResultLine, void, unknown> {
+    let current = await this.rows(taskId, params, options)
     while (true) {
       yield* current.data
       if (current.nextCursor === null) return
@@ -133,20 +128,20 @@ export class Bulk {
     }
   }
 
-  cancel(jobId: string, options?: RequestOptions): Promise<Result<Data<'cancelJob'>>> {
-    return this.transport.request<Data<'cancelJob'>>(
+  cancel(taskId: string, options?: RequestOptions): Promise<Result<Data<'cancelTask'>>> {
+    return this.transport.request<Data<'cancelTask'>>(
       'POST',
-      `/v2/jobs/${encodeURIComponent(jobId)}/cancel`,
+      `/v2/tasks/${encodeURIComponent(taskId)}/cancel`,
       undefined,
       options
     )
   }
 
-  /** Resolves once the job no longer moves: completed, cancelled, failed, or paused. */
-  wait(jobId: string, options?: WaitOptions<BulkJob>): Promise<Result<BulkJob>> {
+  /** Resolves once the task no longer moves: completed, cancelled, failed, or paused. */
+  wait(taskId: string, options?: WaitOptions<BulkTask>): Promise<Result<BulkTask>> {
     return poll(
-      jobId,
-      (wait, requestOptions, deadline) => this.progress(jobId, { wait }, requestOptions, deadline),
+      taskId,
+      (wait, requestOptions, deadline) => this.progress(taskId, { wait }, requestOptions, deadline),
       snapshot =>
         ['queued', 'running'].includes(snapshot.data.status)
           ? (retryAfter(snapshot.response.headers) ?? 2)
@@ -157,9 +152,9 @@ export class Bulk {
   }
 
   listAll(
-    params: Query<'listJobs'> = {},
+    params: Query<'listTasks'> = {},
     options: ListIteratorOptions = {}
-  ): AsyncGenerator<PageItem<Data<'listJobs'>>, void, unknown> {
+  ): AsyncGenerator<PageItem<Data<'listTasks'>>, void, unknown> {
     return iterate(
       request => this.list(request, options),
       params,

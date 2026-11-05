@@ -1,6 +1,6 @@
 import type { RequestOptions, Transport } from '../core/http'
-import { Job } from '../core/job'
-import type { Body, Company, Data, JobAcknowledgement, Person, Result } from '../types'
+import { Task } from '../core/task'
+import type { Body, Company, Data, Person, Result, TaskAcknowledgement } from '../types'
 
 export class Fetch {
   constructor(private readonly transport: Transport) {}
@@ -11,10 +11,10 @@ export class Fetch {
     return this.transport.lookup<Data<'fetchPerson'>>('/v2/fetch/persons', params, options)
   }
 
-  personLive(params: Body<'livePerson'>, options?: RequestOptions): Promise<Job<Person>> {
+  personLive(params: Body<'livePerson'>, options?: RequestOptions): Promise<Task<Person>> {
     return this.transport
-      .request<JobAcknowledgement>('POST', '/v2/fetch/persons/live', params, options)
-      .then(result => new Job<Person>(this.transport, result))
+      .request<TaskAcknowledgement>('POST', '/v2/fetch/persons/live', params, options)
+      .then(result => new Task<Person>(this.transport, result))
   }
 
   checkPerson(
@@ -36,10 +36,10 @@ export class Fetch {
     return this.transport.lookup<Data<'fetchCompany'>>('/v2/fetch/companies', params, options)
   }
 
-  companyLive(params: Body<'liveCompany'>, options?: RequestOptions): Promise<Job<Company>> {
+  companyLive(params: Body<'liveCompany'>, options?: RequestOptions): Promise<Task<Company>> {
     return this.transport
-      .request<JobAcknowledgement>('POST', '/v2/fetch/companies/live', params, options)
-      .then(result => new Job<Company>(this.transport, result))
+      .request<TaskAcknowledgement>('POST', '/v2/fetch/companies/live', params, options)
+      .then(result => new Task<Company>(this.transport, result))
   }
 
   checkCompany(

@@ -1,6 +1,6 @@
 import type { Result } from '../types'
 import { bounded, positiveTimeout, sleep } from './async'
-import { JobTimeoutError, ReverseContactError } from './errors'
+import { ReverseContactError, TaskTimeoutError } from './errors'
 import { type RequestOptions, requestStartedAt, type Transport } from './http'
 
 export function retrievePoll<T>(
@@ -49,7 +49,7 @@ export async function poll<T extends { status: string }>(
       while (true) {
         const started = Date.now()
         const remaining = expiresAt - started
-        if (remaining <= 0) throw new JobTimeoutError(id, lastStatus)
+        if (remaining <= 0) throw new TaskTimeoutError(id, lastStatus)
         const snapshot = await retrieve(
           Math.min(wait, Math.floor(remaining / 1000)),
           { signal, headers: options.headers, maxRetries: 4 },
@@ -57,7 +57,7 @@ export async function poll<T extends { status: string }>(
         )
         lastStatus = snapshot.data.status
         await options.onPoll?.(snapshot)
-        if (Date.now() >= expiresAt) throw new JobTimeoutError(id, lastStatus)
+        if (Date.now() >= expiresAt) throw new TaskTimeoutError(id, lastStatus)
         const delay = decide(snapshot)
         if (delay === null) return snapshot
         const lastAttemptStart = requestStartedAt(snapshot.response) ?? started
@@ -67,10 +67,10 @@ export async function poll<T extends { status: string }>(
     },
     deadline,
     options.signal,
-    () => new JobTimeoutError(id, lastStatus)
+    () => new TaskTimeoutError(id, lastStatus)
   ).catch((error: unknown) => {
     if (Date.now() >= expiresAt && !options.signal?.aborted)
-      throw new JobTimeoutError(id, lastStatus)
+      throw new TaskTimeoutError(id, lastStatus)
     throw error
   })
 }

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { Job, Page } from '../src'
+import { Page, Task } from '../src'
 import { record } from '../src/core/errors'
 import { mockClient, ok, searchPage } from './helpers'
 
@@ -51,7 +51,7 @@ describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
             ? path.startsWith('/v2/search')
               ? searchPage(1)
               : ok({ items: [{ id: 'item' }], nextCursor: null })
-            : entry.kind === 'job'
+            : entry.kind === 'task'
               ? ok({ webhookId: 'job-id', status: 'created', pollUrl: '/v2/webhooks/job-id' })
               : ok({ marker: id })
       const { client, calls } = mockClient([fixture])
@@ -96,7 +96,7 @@ describe.skipIf(!hasInputs)('OpenAPI and operation manifest coverage', () => {
         operation.requestBody ? body : undefined
       )
       expect(new Headers(call?.init.headers).get('X-Test')).toBe('all-methods')
-      if (entry.kind === 'job') expect(result).toBeInstanceOf(Job)
+      if (entry.kind === 'task') expect(result).toBeInstanceOf(Task)
       else if (entry.kind === 'page') expect(result).toBeInstanceOf(Page)
       else if (entry.kind === 'text') expect(result).toBe('id,name\n1,Jane\n')
       else expect(record(result).data).toEqual({ marker: id })

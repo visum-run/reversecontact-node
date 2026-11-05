@@ -107,15 +107,15 @@ export class APIConnectionError extends ReverseContactError {
   }
 }
 export class APITimeoutError extends APIConnectionError {}
-export class JobFailedError extends ReverseContactError {
+export class TaskFailedError extends ReverseContactError {
   readonly notFound: boolean
   constructor(
-    readonly jobId: string,
+    readonly taskId: string,
     readonly errorCode: string | null,
     readonly creditsConsumed: number,
     readonly result: unknown
   ) {
-    super(`Job ${jobId} failed: ${errorCode ?? 'unknown error'}`)
+    super(`Task ${taskId} failed: ${errorCode ?? 'unknown error'}`)
     this.notFound = [
       'data-not-found',
       'person-not-found',
@@ -124,17 +124,33 @@ export class JobFailedError extends ReverseContactError {
       'phone-not-found'
     ].includes(errorCode ?? '')
   }
+  /** @deprecated Use `taskId`. */
+  get jobId(): string {
+    return this.taskId
+  }
 }
-export class JobTimeoutError extends ReverseContactError {
+export class TaskTimeoutError extends ReverseContactError {
   constructor(
-    readonly jobId: string,
+    readonly taskId: string,
     readonly lastStatus?: string
   ) {
     super(
-      `Waiting for job ${jobId} timed out. The job may still finish; resume waiting with its id.`
+      `Waiting for task ${taskId} timed out. The task may still finish; resume waiting with its id.`
     )
   }
+  /** @deprecated Use `taskId`. */
+  get jobId(): string {
+    return this.taskId
+  }
 }
+/** @deprecated Use `TaskFailedError`: the same class under its former name. */
+export const JobFailedError = TaskFailedError
+/** @deprecated Use `TaskFailedError`. */
+export type JobFailedError = TaskFailedError
+/** @deprecated Use `TaskTimeoutError`: the same class under its former name. */
+export const JobTimeoutError = TaskTimeoutError
+/** @deprecated Use `TaskTimeoutError`. */
+export type JobTimeoutError = TaskTimeoutError
 
 export function apiError(response: Response, body: unknown, isJSON: boolean): APIError {
   const code = record(record(body).error).code
