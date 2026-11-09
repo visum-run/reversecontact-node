@@ -12,6 +12,13 @@ import type { Body, Data, Query, Result } from '../types'
 import { ListsMembers } from './lists-members'
 import { ListsOperations } from './lists-operations'
 
+const REQUEST_OPTION_KEYS = ['timeout', 'maxRetries', 'headers', 'signal'] as const
+
+/** Request options and export parameters share no key: either one tells them apart. */
+function isRequestOptions(value: Query<'exportList'> | RequestOptions): value is RequestOptions {
+  return REQUEST_OPTION_KEYS.some(key => key in value)
+}
+
 export class Lists {
   constructor(private readonly transport: Transport) {
     this.members = new ListsMembers(transport)
@@ -74,12 +81,34 @@ export class Lists {
     )
   }
 
-  export(listId: string, options?: RequestOptions): Promise<string> {
+  /**
+   * The List as text, members and Not found rows in the order they were added: the CSV by
+   * default (`fields` chooses its columns), or with `{ format: 'ndjson' }` one `ListExportLine`
+   * JSON object per line.
+   */
+  export(listId: string, params?: Query<'exportList'>, options?: RequestOptions): Promise<string>
+  /** @deprecated Pass the request options third: `lists.export(listId, {}, options)`. */
+  export(listId: string, options: RequestOptions): Promise<string>
+  export(
+    listId: string,
+    paramsOrOptions: Query<'exportList'> | RequestOptions = {},
+    options?: RequestOptions
+  ): Promise<string> {
+    // Until 0.4.0 the options came second: that call keeps working.
+    if (isRequestOptions(paramsOrOptions)) return this.exportText(listId, {}, paramsOrOptions)
+    return this.exportText(listId, paramsOrOptions, options)
+  }
+
+  private exportText(
+    listId: string,
+    params: Query<'exportList'>,
+    options: RequestOptions | undefined
+  ): Promise<string> {
     return this.transport
       .request<string>(
         'GET',
         `/v2/lists/${encodeURIComponent(listId)}/export`,
-        undefined,
+        params,
         options,
         true
       )

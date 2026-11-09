@@ -101,6 +101,8 @@ export type EmailVerification = components['schemas']['ContactEmailVerifyResult'
 export type Usage = Result<null>
 export type List = Data<'createList'>
 export type ListMember = Data<'listListMembers'>['items'][number]
+/** One line of `lists.export(listId, { format: 'ndjson' })`: a member or a Not found row (`kind`). */
+export type ListExportLine = components['schemas']['ListExportLine']
 export type ListOperation = Data<'getListOperation'>
 /** A background task of the workspace (`/v2/tasks`): a Bulk enrich, a List import or enrichment, a Search export. */
 export type BulkTask = Data<'getTask'>

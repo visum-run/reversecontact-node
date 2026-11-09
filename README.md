@@ -73,7 +73,7 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | | `organizations`, `organizationsByPrompt` | A `Page` of organizations |
 | | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
 | | `countPeople`, `countOrganizations` | The number of matches (free) |
-| | `peopleAutoSuggestion` | The skills that start with what someone typed, for a search box in your own product (free) |
+| | `peopleAutoSuggestion` | The skills, industries, country codes or areas that match what someone typed, for a search box in your own product (free) |
 | | `peopleFields`, `organizationsFields` | The available search filters (free) |
 | `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Task` that finds email addresses or phone numbers, or checks an email address |
 | `client.tasks` | `retrieve`, `wait` | One task snapshot, or the final task result (`client.jobs` is a deprecated alias) |
@@ -290,6 +290,8 @@ console.log(stopped.data.clientAction, stopped.data.nextStep)
 // If needed: await client.lists.operations.cancel(listId, operationId)
 
 const csv = await client.lists.export(listId)
+// One JSON object per line (ListExportLine): the member row, then person or company and customColumns
+const ndjson = await client.lists.export(listId, { format: 'ndjson' })
 // Removal is explicit and supports both memberIds and pendingIds:
 // await client.lists.members.remove(listId, { memberIds: ['member-id'] })
 // await client.lists.delete(listId)

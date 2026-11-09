@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (2026-11-09)
+
+- `bulk.enrichPersons` takes `families: ['check']`: the free person check of each item that has a profile URL (`linkedinUrl`), at no cost. It tells whether the profile is in the database, when it was last updated and how much of it there is. It runs alone, not with another family nor with `live`. Each `TaskResultLine` of such a task carries `check` (`exists`, `lastUpdate`, `experienceCount`, `skillCount`, `schoolCount`), and its `status` reads `found` or `not_found`.
+- `search.peopleAutoSuggestion` completes industries, country codes and areas too: `field` takes `industry`, `countryCode` and `area` besides `skills`. A country answers to its ISO code or its name (`FR` and `fran` both give France first), an area to its id, acronym or name (`DACH`). Each suggestion now carries `label`, the text to show, next to `value`, the text to send in the filter (`{ value: 'FR', label: 'France' }`; a skill's label is the skill itself).
+- `lists.export` accepts `{ format: 'ndjson' }` and returns one `ListExportLine` JSON object per line: the row `lists.members.list` returns, then `person` (a persons List, in the `/v2/enrich/persons` shape), `company` (a companies List, or the Company details of a person member, in the `/v2/enrich/companies` shape), `isFullProfile` and `customColumns`. The CSV stays the default, and `{ fields: '...' }` chooses its columns. The request options now come third, `lists.export(listId, params, options)`, like `bulk.results`; `lists.export(listId, options)` keeps working and is deprecated. `ListExportLine` is an exported type.
+
 ## 0.4.0 (2026-11-05)
 
 - Breaking: the background jobs of the Bulk API are now called tasks, with no compatibility for the old routes. `client.bulk` keeps every method name (`enrichPersons`, `list`, `listAll`, `retrieve`, `wait`, `results`, `rows`, `iterateRows`, `cancel`); what changes:

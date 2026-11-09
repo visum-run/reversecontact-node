@@ -135,7 +135,7 @@ export interface paths {
         put?: never;
         /**
          * People auto-suggestion
-         * @description Returns the skills that start with what someone has typed, most common first, to build a search box in your own product. Credits: 0 (free).
+         * @description Returns the values of a People Search filter that match what someone has typed, best first, to build a search box in your own product. skills are the skills that start with the query, most common first. industry, countryCode and area come from closed lists: a code typed whole comes first (FR, DE, DACH), then a name equal to the query, a name starting with it, and a name each of whose words starts one typed word (dev for Software Development). Send value in the filter and show label. Credits: 0 (free).
          */
         post: operations["searchPeopleAutoSuggestion"];
         delete?: never;
@@ -589,7 +589,7 @@ export interface paths {
         };
         /**
          * Export a List
-         * @description Downloads the List as CSV, as the dashboard shows it: one row per line of the List, members and Not found rows (Pending Intake) mixed in the order they were added. A member carries its stored data, where a value typed over a cell replaces the enriched one; a Not found row carries what was pasted or typed on it. A workspace exports one List at a time: while one runs, another answers 429 LIST_EXPORT_IN_PROGRESS; 429 LIST_EXPORT_BUSY means the server is serving another workspace, retry after Retry-After. Credits: 0.
+         * @description Downloads the List as the dashboard shows it, streamed: one row per line of the List, members and Not found rows (Pending Intake) mixed in the order they were added. format=csv (default) is the file the dashboard downloads: a member carries its stored data, where a value typed over a cell replaces the enriched one; a Not found row carries what was pasted or typed on it. fields chooses its columns. format=ndjson (JSON Lines) gives one ListExportLine per line: the row GET /v2/lists/{listId}/members returns, plus person (a persons List, in the /v2/enrich/persons shape), company (a companies List, or the Company details of a person member, in the /v2/enrich/companies shape), isFullProfile and customColumns. An NDJSON line carries every field: fields is refused with it (400 LIST_INVALID_INPUT). A workspace exports one List at a time: while one runs, another answers 429 LIST_EXPORT_IN_PROGRESS; 429 LIST_EXPORT_BUSY means the server is serving another workspace, retry after Retry-After. Credits: 0 (free).
          */
         get: operations["exportList"];
         put?: never;
@@ -611,7 +611,7 @@ export interface paths {
         put?: never;
         /**
          * Bulk enrich people
-         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the task: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the task would otherwise run without it. An API key with credit limits must hold the whole reservation: a task that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started task counts against the key what it reserved, then only what it spent once it settles. Following a task, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
+         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the task: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. families ["check"] runs the free /v2/fetch/persons/check on each item that has a LinkedIn URL instead: is the profile in the database, when was it last updated, how much of it is there. It runs alone (not with another family, not with live), costs nothing, and like the unit check needs at least 2 credits on the balance (402 NO_CREDITS below that). Items without a LinkedIn URL read skipped. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the task would otherwise run without it. An API key with credit limits must hold the whole reservation: a task that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started task counts against the key what it reserved, then only what it spent once it settles. Following a task, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
          */
         post: operations["bulkEnrichPersons"];
         delete?: never;
@@ -1103,7 +1103,7 @@ export interface components {
             input: {
                 [key: string]: string;
             };
-            /** @description What happened, as the rc_status column: enriched, partial, not_found, invalid_input, duplicate, insufficient_credits, skipped, data_subject_blocked, rate_limited, error or unknown. running: an item a cancelled task had started and not finished yet, which ends within the hour */
+            /** @description What happened, as the rc_status column: enriched, partial, not_found, invalid_input, duplicate, insufficient_credits, skipped, data_subject_blocked, rate_limited, error or unknown. A check task reads found (the profile is in the database) or not_found (it is not). running: an item a cancelled task had started and not finished yet, which ends within the hour */
             status: string;
             /** @description The same text as the rc_message column, with the credits it cost */
             message: string;
@@ -1127,7 +1127,95 @@ export interface components {
                 value: string | null;
                 type: string | null;
             };
+            /** @description Present when the task asked for check: what /v2/fetch/persons/check answers for this item. The date and the counts are null unless the profile exists */
+            check?: {
+                exists: boolean | null;
+                lastUpdate: string | null;
+                experienceCount: number | null;
+                skillCount: number | null;
+                schoolCount: number | null;
+            };
         };
+        /** @description A member line of GET /v2/lists/{listId}/export?format=ndjson: the row GET /v2/lists/{listId}/members returns, then its stored data and custom columns. */
+        ListExportMemberLine: {
+            /** @enum {string} */
+            kind: "member";
+            /**
+             * Format: uuid
+             * @description Member id
+             */
+            id: string;
+            /** @description Person or company id */
+            entityId: string;
+            linkedinUrl?: string | null;
+            /** @description identified, profiled or enriched */
+            status?: string;
+            /** @description Stored fields, as the List shows them: a value typed over a cell in the dashboard replaces the enriched one */
+            fields?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Format: date-time
+             * @description Date the member was added
+             */
+            addedAt?: string;
+            /** @description Per data family state: profile, company, contactEmail, contactPhone. A contact typed in the dashboard reads found with source manual */
+            families?: {
+                [key: string]: unknown;
+            };
+            externalId: string | null;
+            /** @description Persons List: the stored profile in the /v2/enrich/persons shape, the full profile (isFullProfile true) or the light shape. Null when the List holds none for this member yet. Absent on a companies List. */
+            person?: components["schemas"]["EnrichedPersonFull"] | components["schemas"]["EnrichedPersonLight"] | null;
+            /** @description Companies List: the stored company. Persons List: the Company details bought for this member. In the /v2/enrich/companies shape; null when the List holds none. */
+            company: components["schemas"]["EnrichedCompanyFull"] | components["schemas"]["EnrichedCompanyLight"] | null;
+            /** @description True when the record of the List (person, or company on a companies List) is the full profile */
+            isFullProfile: boolean;
+            /** @description The custom columns of the List, in their order, each with this row's cell */
+            customColumns: {
+                /** @description Custom column id */
+                id: string;
+                /** @description Custom column name, as the dashboard heads it */
+                name: string;
+                /** @description The cell (text, number, boolean or option), null when empty */
+                value: string | number | boolean | null;
+            }[];
+        };
+        /** @description A Not found line of GET /v2/lists/{listId}/export?format=ndjson: the row GET /v2/lists/{listId}/members returns, then its custom columns. */
+        ListExportPendingLine: {
+            /** @enum {string} */
+            kind: "pending";
+            /**
+             * Format: uuid
+             * @description Pending Intake id
+             */
+            id: string;
+            /** @description The Signal as sent */
+            signal?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            source?: "file" | "paste";
+            /**
+             * Format: date-time
+             * @description Date the line was kept
+             */
+            addedAt?: string;
+            /** @description Values typed over the row in the dashboard, by column (name, headline, company, url, contactEmail...) */
+            fields?: {
+                [key: string]: string;
+            };
+            /** @description The custom columns of the List, in their order, each with this row's cell */
+            customColumns: {
+                /** @description Custom column id */
+                id: string;
+                /** @description Custom column name, as the dashboard heads it */
+                name: string;
+                /** @description The cell (text, number, boolean or option), null when empty */
+                value: string | number | boolean | null;
+            }[];
+        };
+        /** @description One line of GET /v2/lists/{listId}/export?format=ndjson, told apart by kind: member or pending. */
+        ListExportLine: components["schemas"]["ListExportMemberLine"] | components["schemas"]["ListExportPendingLine"];
         /** @description Nested under the top-level V2 data field: response.data.company. */
         EnrichCompanyData: {
             /** @description Matched company: the full company (data.isFullProfile true), or the light shape when the full company could not be assembled (data.isFullProfile false). */
@@ -1212,11 +1300,13 @@ export interface components {
              * @description The filter completed
              * @enum {string}
              */
-            field: "skills";
-            /** @description Values starting with the query, most common first */
+            field: "skills" | "industry" | "countryCode" | "area";
+            /** @description Values matching the query, best first */
             suggestions: {
-                /** @description A value to show, and to send as it is in the filter */
+                /** @description The value to send as it is in the filter: a skill, an industry, an ISO country code (FR) or an area id (MC:DACH) */
                 value: string;
+                /** @description The value to show: the skill or industry itself, the country name (France) or the area name (Germany, Austria & Switzerland) */
+                label: string;
             }[];
         };
         CheckPersonData: {
@@ -1916,10 +2006,10 @@ export interface components {
         SearchPeopleCountBody: components["schemas"]["SearchPeopleFilters"];
         SearchPeopleAutoSuggestionBody: {
             /**
-             * @description The filter to complete
+             * @description The filter to complete. skills: the skills filter, from the profiles, most common first. industry: companyIndustry, currentCompanyIndustry and excludeCompanyIndustry. countryCode: location.countryCode, found by ISO code or by name. area: location.area, found by id, acronym or name.
              * @enum {string}
              */
-            field: "skills";
+            field: "skills" | "industry" | "countryCode" | "area";
             /** @description What has been typed so far */
             query: string;
             /** @description Maximum values returned, 10 by default */
@@ -5849,7 +5939,10 @@ export interface operations {
     };
     exportList: {
         parameters: {
-            query?: never;
+            query?: {
+                format?: "csv" | "ndjson";
+                fields?: string;
+            };
             header?: never;
             path: {
                 listId: string;
@@ -5858,13 +5951,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List CSV: members and Not found rows, in the order they were added */
+            /** @description The List, streamed: a CSV, or NDJSON (one ListExportLine per line), members and Not found rows in the order they were added */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "text/csv": string;
+                    "application/x-ndjson": components["schemas"]["ListExportLine"];
                 };
             };
             /** @description Invalid JSON body or endpoint-specific business validation */
@@ -5969,8 +6063,8 @@ export interface operations {
                         /** @description Your own identifier, given back in its row of the results CSV */
                         externalId?: string;
                     }[];
-                    /** @description What to look up for each item (default: profile) */
-                    families?: ("profile" | "contact_email" | "contact_phone")[];
+                    /** @description What to look up for each item (default: profile). check runs alone: the free database check of each LinkedIn URL item */
+                    families?: ("profile" | "contact_email" | "contact_phone" | "check")[];
                     /**
                      * @description With contact_email: the kind of email to look for
                      * @default professional
