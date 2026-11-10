@@ -135,7 +135,7 @@ export interface paths {
         put?: never;
         /**
          * People auto-suggestion
-         * @description Returns the values of a People Search filter that match what someone has typed, best first, to build a search box in your own product. skills are the skills that start with the query, most common first. industry, countryCode and area come from closed lists: a code typed whole comes first (FR, DE, DACH), then a name equal to the query, a name starting with it, and a name each of whose words starts one typed word (dev for Software Development). Send value in the filter and show label. Credits: 0 (free).
+         * @description Returns the values of a People Search filter that match what someone has typed, best first, to build a search box in your own product. skills, languages, positionTitle, currentPositionTitle, companyName, currentCompanyName, schoolName, city and region are read from the profiles: the values that start with the query, most common first. industry, countryCode and area come from closed lists: a code typed whole comes first (FR, DE, DACH), then a name equal to the query, a name starting with it, and a name each of whose words starts one typed word (dev for Software Development). Job titles and company names answer from 3 characters, the other fields read from the profiles from 2, the closed lists from 1: a shorter query returns 422. Send value in the filter and show label. Credits: 0 (free).
          */
         post: operations["searchPeopleAutoSuggestion"];
         delete?: never;
@@ -1300,12 +1300,12 @@ export interface components {
              * @description The filter completed
              * @enum {string}
              */
-            field: "skills" | "industry" | "countryCode" | "area";
+            field: "skills" | "languages" | "positionTitle" | "currentPositionTitle" | "companyName" | "currentCompanyName" | "schoolName" | "city" | "region" | "industry" | "countryCode" | "area";
             /** @description Values matching the query, best first */
             suggestions: {
-                /** @description The value to send as it is in the filter: a skill, an industry, an ISO country code (FR) or an area id (MC:DACH) */
+                /** @description The value to send as it is in the filter: a skill, a language, a job title, a company name, a school, a city, a region, an industry, an ISO country code (FR) or an area id (MC:DACH). The values read from the profiles are in lowercase (software engineer, sao paulo) */
                 value: string;
-                /** @description The value to show: the skill or industry itself, the country name (France) or the area name (Germany, Austria & Switzerland) */
+                /** @description The value to show: the country name (France) or the area name (Germany, Austria & Switzerland), and the value itself for every other field */
                 label: string;
             }[];
         };
@@ -2006,11 +2006,11 @@ export interface components {
         SearchPeopleCountBody: components["schemas"]["SearchPeopleFilters"];
         SearchPeopleAutoSuggestionBody: {
             /**
-             * @description The filter to complete. skills: the skills filter, from the profiles, most common first. industry: companyIndustry, currentCompanyIndustry and excludeCompanyIndustry. countryCode: location.countryCode, found by ISO code or by name. area: location.area, found by id, acronym or name.
+             * @description The filter to complete. Read from the profiles, most common first: skills, languages, positionTitle (and excludePositionTitle), currentPositionTitle (and excludeCurrentPositionTitle), companyName (and excludeCompanyName), currentCompanyName, schoolName, city (location.city) and region (location.region). From closed lists: industry (companyIndustry, currentCompanyIndustry and excludeCompanyIndustry), countryCode (location.countryCode, found by ISO code or by name) and area (location.area, found by id, acronym or name).
              * @enum {string}
              */
-            field: "skills" | "industry" | "countryCode" | "area";
-            /** @description What has been typed so far */
+            field: "skills" | "languages" | "positionTitle" | "currentPositionTitle" | "companyName" | "currentCompanyName" | "schoolName" | "city" | "region" | "industry" | "countryCode" | "area";
+            /** @description What has been typed so far. At least 3 characters for positionTitle, currentPositionTitle, companyName and currentCompanyName, 2 for skills, languages, schoolName, city and region, 1 for industry, countryCode and area: a shorter query returns 422 */
             query: string;
             /** @description Maximum values returned, 10 by default */
             limit?: number;

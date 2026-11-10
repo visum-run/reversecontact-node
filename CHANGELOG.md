@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2 (2026-11-10)
+
+- `search.peopleAutoSuggestion` completes eight more People filters from what the profiles hold, most common first: `field` takes `languages`, `positionTitle`, `currentPositionTitle`, `companyName`, `currentCompanyName`, `schoolName`, `city` and `region` besides `skills`, `industry`, `countryCode` and `area`. Each name is the filter the value goes back into (`city` and `region` are `location.city` and `location.region`). These values come in lowercase, as the profiles are indexed (`software engineer`, `sao paulo`), and their `label` is the value itself.
+- A `query` now has a minimum length per field: 3 characters for `positionTitle`, `currentPositionTitle`, `companyName` and `currentCompanyName`, 2 for `skills`, `languages`, `schoolName`, `city` and `region`, 1 for `industry`, `countryCode` and `area`. A shorter query is refused with a 422 (`UnprocessableEntityError`, code `VALIDATION_ERROR`) that names the minimum. A one-letter `skills` query was accepted before.
+
 ## 0.4.1 (2026-11-09)
 
 - `bulk.enrichPersons` takes `families: ['check']`: the free person check of each item that has a profile URL (`linkedinUrl`), at no cost. It tells whether the profile is in the database, when it was last updated and how much of it there is. It runs alone, not with another family nor with `live`. Each `TaskResultLine` of such a task carries `check` (`exists`, `lastUpdate`, `experienceCount`, `skillCount`, `schoolCount`), and its `status` reads `found` or `not_found`.
