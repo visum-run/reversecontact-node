@@ -96,6 +96,17 @@ export type JobStatus = TaskStatus
 export type JobAcknowledgement = TaskAcknowledgement
 /** @deprecated Use `TaskSnapshot`. */
 export type JobSnapshot<T = unknown> = TaskSnapshot<T>
+/**
+ * @deprecated The answer of `search.peopleAutoSuggestion`. `search.peopleAutoCompletionFields`
+ * answers the same values under `completions`.
+ */
+export type PeopleAutoSuggestionData = Omit<
+  Data<'searchPeopleAutoCompletionFields'>,
+  'object' | 'completions'
+> & {
+  object: 'search_auto_suggestions'
+  suggestions: Data<'searchPeopleAutoCompletionFields'>['completions']
+}
 export type ContactValue = { value: string; type: string }
 export type EmailVerification = components['schemas']['ContactEmailVerifyResult']
 export type Usage = Result<null>

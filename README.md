@@ -73,7 +73,7 @@ This opt-out exposes your key to the browser user; use a backend for customer ap
 | | `organizations`, `organizationsByPrompt` | A `Page` of organizations |
 | | `iterPeople`, `iterPeopleByPrompt`, `iterPeopleLookalike`, `iterOrganizations`, `iterOrganizationsByPrompt` | An async iterator over results, bounded by `maxResults` |
 | | `countPeople`, `countOrganizations` | The number of matches (free) |
-| | `peopleAutoSuggestion` | The skills, languages, job titles, company names, schools, cities, regions, industries, country codes or areas that match what someone typed, for a search box in your own product (free) |
+| | `peopleAutoCompletionFields` | The skills, languages, job titles, company names, schools, cities, regions, industries, country codes or areas that complete what someone typed, for a search box in your own product (free) |
 | | `peopleFields`, `organizationsFields` | The available search filters (free) |
 | `client.contact` | `findEmail`, `findPhone`, `verifyEmail` | A `Task` that finds email addresses or phone numbers, or checks an email address |
 | `client.tasks` | `retrieve`, `wait` | One task snapshot, or the final task result (`client.jobs` is a deprecated alias) |

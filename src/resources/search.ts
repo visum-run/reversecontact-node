@@ -8,7 +8,7 @@ import {
   page,
   type SearchIteratorOptions
 } from '../core/page'
-import type { Body, Data, Result } from '../types'
+import type { Body, Data, PeopleAutoSuggestionData, Result } from '../types'
 
 export class Search {
   constructor(private readonly transport: Transport) {}
@@ -61,11 +61,27 @@ export class Search {
     )
   }
 
-  peopleAutoSuggestion(
-    params: Body<'searchPeopleAutoSuggestion'>,
+  peopleAutoCompletionFields(
+    params: Body<'searchPeopleAutoCompletionFields'>,
     options?: RequestOptions
-  ): Promise<Result<Data<'searchPeopleAutoSuggestion'>>> {
-    return this.transport.request<Data<'searchPeopleAutoSuggestion'>>(
+  ): Promise<Result<Data<'searchPeopleAutoCompletionFields'>>> {
+    return this.transport.request<Data<'searchPeopleAutoCompletionFields'>>(
+      'POST',
+      '/v2/search/people/auto-completion-fields',
+      params,
+      options
+    )
+  }
+
+  /**
+   * @deprecated Use `peopleAutoCompletionFields`, which answers `completions`. This method
+   * calls the former path and keeps its answer, `suggestions`.
+   */
+  peopleAutoSuggestion(
+    params: Body<'searchPeopleAutoCompletionFields'>,
+    options?: RequestOptions
+  ): Promise<Result<PeopleAutoSuggestionData>> {
+    return this.transport.request<PeopleAutoSuggestionData>(
       'POST',
       '/v2/search/people/auto-suggestion',
       params,

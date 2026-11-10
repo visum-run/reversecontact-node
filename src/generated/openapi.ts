@@ -124,7 +124,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/search/people/auto-suggestion": {
+    "/v2/search/people/auto-completion-fields": {
         parameters: {
             query?: never;
             header?: never;
@@ -134,10 +134,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * People auto-suggestion
-         * @description Returns the values of a People Search filter that match what someone has typed, best first, to build a search box in your own product. skills, languages, positionTitle, currentPositionTitle, companyName, currentCompanyName, schoolName, city and region are read from the profiles: the values that start with the query, most common first. industry, countryCode and area come from closed lists: a code typed whole comes first (FR, DE, DACH), then a name equal to the query, a name starting with it, and a name each of whose words starts one typed word (dev for Software Development). Job titles and company names answer from 3 characters, the other fields read from the profiles from 2, the closed lists from 1: a shorter query returns 422. Send value in the filter and show label. Credits: 0 (free).
+         * People auto-completion fields
+         * @description Returns the values of a People Search filter that complete what someone has typed, best first, to build a search box in your own product. skills, languages, positionTitle, currentPositionTitle, companyName, currentCompanyName, schoolName, city and region are read from the profiles: the values that start with the query, most common first. industry, countryCode and area come from closed lists: a code typed whole comes first (FR, DE, DACH), then a name equal to the query, a name starting with it, and a name each of whose words starts one typed word (dev for Software Development). Job titles and company names answer from 3 characters, the other fields read from the profiles from 2, the closed lists from 1: a shorter query returns 422. Send value in the filter and show label. Credits: 0 (free).
          */
-        post: operations["searchPeopleAutoSuggestion"];
+        post: operations["searchPeopleAutoCompletionFields"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1291,9 +1291,9 @@ export interface components {
             /** @description Total profiles matching the supplied filters */
             count: number;
         };
-        SearchPeopleAutoSuggestionData: {
+        SearchPeopleAutoCompletionData: {
             /** @constant */
-            object: "search_auto_suggestions";
+            object: "search_auto_completions";
             /** @constant */
             entity: "person";
             /**
@@ -1301,8 +1301,8 @@ export interface components {
              * @enum {string}
              */
             field: "skills" | "languages" | "positionTitle" | "currentPositionTitle" | "companyName" | "currentCompanyName" | "schoolName" | "city" | "region" | "industry" | "countryCode" | "area";
-            /** @description Values matching the query, best first */
-            suggestions: {
+            /** @description Values completing the query, best first */
+            completions: {
                 /** @description The value to send as it is in the filter: a skill, a language, a job title, a company name, a school, a city, a region, an industry, an ISO country code (FR) or an area id (MC:DACH). The values read from the profiles are in lowercase (software engineer, sao paulo) */
                 value: string;
                 /** @description The value to show: the country name (France) or the area name (Germany, Austria & Switzerland), and the value itself for every other field */
@@ -2004,7 +2004,7 @@ export interface components {
             perPage?: number;
         } & (unknown | unknown);
         SearchPeopleCountBody: components["schemas"]["SearchPeopleFilters"];
-        SearchPeopleAutoSuggestionBody: {
+        SearchPeopleAutoCompletionBody: {
             /**
              * @description The filter to complete. Read from the profiles, most common first: skills, languages, positionTitle (and excludePositionTitle), currentPositionTitle (and excludeCurrentPositionTitle), companyName (and excludeCompanyName), currentCompanyName, schoolName, city (location.city) and region (location.region). From closed lists: industry (companyIndustry, currentCompanyIndustry and excludeCompanyIndustry), countryCode (location.countryCode, found by ISO code or by name) and area (location.area, found by id, acronym or name).
              * @enum {string}
@@ -2737,7 +2737,7 @@ export interface operations {
             };
         };
     };
-    searchPeopleAutoSuggestion: {
+    searchPeopleAutoCompletionFields: {
         parameters: {
             query?: never;
             header?: never;
@@ -2746,18 +2746,18 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SearchPeopleAutoSuggestionBody"];
+                "application/json": components["schemas"]["SearchPeopleAutoCompletionBody"];
             };
         };
         responses: {
-            /** @description People auto-suggestion */
+            /** @description People auto-completion fields */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["V2SuccessEnvelope"] & {
-                        data?: components["schemas"]["SearchPeopleAutoSuggestionData"];
+                        data?: components["schemas"]["SearchPeopleAutoCompletionData"];
                     };
                 };
             };
