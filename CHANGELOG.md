@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 (2026-11-10)
+
+- `lists.importSignals` with `live: true` now fetches live a person Social profile URL that saved data does not hold: 2 credits, charged only when the person becomes a new member of the List, and nothing when no one is found or the fetch fails.
+- `lists.members.add` reads saved data only: `live` is still accepted and is not used. A Social profile URL that saved data does not hold comes back `not_found` with the new `reason: "not_in_database"`, kept as Pending Intake.
+
 ## 0.5.0 (2026-11-10)
 
 - Search autocomplete is now `search.peopleAutoCompletionFields`: it calls `POST /v2/search/people/auto-completion-fields`, the new path of the endpoint, and reads the values under `data.completions` (`object: "search_auto_completions"`). The request does not change.

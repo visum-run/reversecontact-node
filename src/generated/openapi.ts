@@ -507,7 +507,7 @@ export interface paths {
         put?: never;
         /**
          * Add members
-         * @description Adds up to 1,000 Signals and answers when they are done, with one result per Signal in request order (results[]: added, already_present, not_found, refused, failed, not_reached). A person is found from a Social URL, an email, or a first and last name with a company. A new member is charged its identity price: 1 credit for a Social URL from saved data (2 with live: true), 2 for an email or a name. A member already on the List is free and left as it is; a Signal no one matches is kept as Pending Intake, free. One invalid Signal refuses the request with details.signalIndex. For more Signals, data families, a credit ceiling or a webhook, use the import (intake/signals).
+         * @description Adds up to 1,000 Signals and answers when they are done, with one result per Signal in request order (results[]: added, already_present, not_found, refused, failed, not_reached). A person is found from a Social URL, an email, or a first and last name with a company. It reads saved data only: a new member is charged its identity price, 1 credit for a Social URL, 2 for an email or a name. A member already on the List is free and left as it is; a Signal no one matches is kept as Pending Intake, free. A Social URL not in saved data comes back not_found with reason not_in_database: to fetch it live, use the import (intake/signals) with live: true. One invalid Signal refuses the request with details.signalIndex. For more Signals, data families, a credit ceiling, a live fetch or a webhook, use the import (intake/signals).
          */
         post: operations["addListMembers"];
         /**
@@ -531,7 +531,7 @@ export interface paths {
         put?: never;
         /**
          * Import members and data
-         * @description Queues up to 25,000 Signals (or a public CSV / Google Sheet URL) as one operation and answers at once with operationId and pollUrl. Each line is identified like an add (saved data unless live: true); with families, the data you ask for (profile, company, contact_email, contact_phone) is then fetched for each member, new or already on the List. Data a member already holds is not bought again. Above 25 credits of worst-case estimate, a request with families needs maxCredits, the most it may spend: the operation stops at that ceiling (stopReason max_credits) and can be resumed with a higher one. With webhookUrl (public HTTPS), that URL receives one POST each time the operation stops moving (completed, stopped, cancelled); the event carries no member data, read the operation at its pollUrl. Lines naming the same identity with the same externalId are deduplicated. Replaying with the same operationId returns the same operation and never charges twice. To stop it, cancel it (operations/{operationId}/cancel): cancelling is final, a new run needs a new operationId.
+         * @description Queues up to 25,000 Signals (or a public CSV / Google Sheet URL) as one operation and answers at once with operationId and pollUrl. Each line is identified like an add, from saved data; with live: true, a Social URL not in saved data is fetched live (2 credits, charged only when it becomes a new member; not found or failed costs 0). With families, the data you ask for (profile, company, contact_email, contact_phone) is then fetched for each member, new or already on the List. Data a member already holds is not bought again. Above 25 credits of worst-case estimate, a request with families needs maxCredits, the most it may spend: the operation stops at that ceiling (stopReason max_credits) and can be resumed with a higher one. With webhookUrl (public HTTPS), that URL receives one POST each time the operation stops moving (completed, stopped, cancelled); the event carries no member data, read the operation at its pollUrl. Lines naming the same identity with the same externalId are deduplicated. Replaying with the same operationId returns the same operation and never charges twice. To stop it, cancel it (operations/{operationId}/cancel): cancelling is final, a new run needs a new operationId.
          */
         post: operations["importListSignals"];
         delete?: never;
@@ -5151,7 +5151,7 @@ export interface operations {
                      */
                     source?: "file" | "paste";
                     /**
-                     * @description For Social URL Signals: true fetches the profile live (2 credits); omitted or false uses saved data (1 credit).
+                     * @description Accepted for compatibility and not used: this add reads saved data only (1 credit for a Social URL). To fetch a Social URL live, use the import (intake/signals) with live: true.
                      * @default false
                      */
                     live?: boolean;
@@ -5199,8 +5199,11 @@ export interface operations {
                                  * @description Pending Intake kept for a not_found line
                                  */
                                 pendingId?: string;
-                                /** @enum {string} */
-                                reason?: "member_limit" | "pending_intake_limit" | "insufficient_credits" | "ambiguous_identity" | "data_subject_blocked" | "identity_unavailable" | "quota_unavailable" | "stopped";
+                                /**
+                                 * @description Why a line was refused, failed or not reached. On a not_found line, not_in_database: our database does not hold this Social URL (an import with live: true reads it live).
+                                 * @enum {string}
+                                 */
+                                reason?: "not_in_database" | "member_limit" | "pending_intake_limit" | "insufficient_credits" | "ambiguous_identity" | "data_subject_blocked" | "identity_unavailable" | "quota_unavailable" | "stopped";
                             }[];
                         } & {
                             [key: string]: unknown;
@@ -5450,7 +5453,7 @@ export interface operations {
                      */
                     sourceUrl?: string;
                     /**
-                     * @description true fetches Social URL profiles live; omitted or false uses saved data
+                     * @description true fetches live a Social URL not in saved data (2 credits, only for a new member); omitted or false uses saved data
                      * @default false
                      */
                     live?: boolean;
