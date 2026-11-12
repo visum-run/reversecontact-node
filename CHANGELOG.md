@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2 (2026-11-12)
+
+- `bulk.enrichPersons` takes `liveIfOlderThanDays`, a live mode of its own that needs no `live: true`: each item with a profile URL (`linkedinUrl`) reads our database first, and is scraped live only when the stored profile is that many days old or more, undated, or missing. A recent profile costs 1 credit (the fetch price) instead of 2; the task still reserves the live price and gives the difference back when it settles. Each `TaskResultLine` of such a task carries `source`, `cache` or `live` (null when no profile was delivered).
+
 ## 0.5.1 (2026-11-10)
 
 - `lists.importSignals` with `live: true` now fetches live a person Social profile URL that saved data does not hold: 2 credits, charged only when the person becomes a new member of the List, and nothing when no one is found or the fetch fails.
