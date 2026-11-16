@@ -611,7 +611,7 @@ export interface paths {
         put?: never;
         /**
          * Bulk enrich people
-         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the task: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. families ["check"] runs the free /v2/fetch/persons/check on each item that has a LinkedIn URL instead: is the profile in the database, when was it last updated, how much of it is there. It runs alone (not with another family, not with live or liveIfOlderThanDays), costs nothing, and like the unit check needs at least 2 credits on the balance (402 NO_CREDITS below that). Items without a LinkedIn URL read skipped. liveIfOlderThanDays, a live mode of its own that needs no live: true, decides per LinkedIn URL item: a profile our database updated less than that many days ago is returned from the database at the /v2/fetch/persons price (1 credit), any other (older, undated or not in the database) is scraped live (2 credits). The date compared is the lastUpdate of /v2/fetch/persons/check, so a free check task (families: ["check"]) shows beforehand which items would go live. Every URL item is reserved at the live price and the difference is given back when the task settles. The results add an rc_source column (cache or live, source in NDJSON), and rc_update_date gives the date of every profile. Items with an email or a name are not affected. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the task would otherwise run without it. An API key with credit limits must hold the whole reservation: a task that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started task counts against the key what it reserved, then only what it spent once it settles. Following a task, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
+         * @description Enriches up to 25,000 people in one call. Each item is what /v2/enrich/persons (email, or name with a company) or /v2/fetch/persons (LinkedIn URL) takes, priced like it. The credits of every item are reserved at once, up to the balance (items past it read insufficient_credits and cost nothing), and given back for what is not found. Duplicates of an earlier item are enriched once and cost nothing. Answers 202 at once with the task: follow it at links.self (wait=N holds the request until it settles), or pass webhookUrl to receive one POST when it settles; once it is completed or cancelled, links.results gives the results CSV, one row per item in the order sent. families adds the contact finders (contact_email, contact_phone) and needs their permission; emailType chooses the kind of email. families ["check"] runs the free /v2/fetch/persons/check on each item that has a LinkedIn URL instead: is the profile in the database, when was it last updated, how much of it is there. It runs alone (not with another family, not with live or liveIfOlderThanDays), costs nothing, and like the unit check needs at least 2 credits on the balance (402 NO_CREDITS below that). Items without a LinkedIn URL read skipped. liveIfOlderThanDays, a live mode of its own that needs no live: true, decides per LinkedIn URL item: a profile our database updated less than that many days ago is returned from the database at the /v2/fetch/persons price (1 credit), any other (older, undated or not in the database) is scraped live (2 credits). The date compared is the lastUpdate of /v2/fetch/persons/check, so a free check task (families: ["check"]) shows beforehand which items would go live. Every URL item is reserved at the live price and the difference is given back when the task settles. The results add an rc_source column (cache or live, source in NDJSON), and rc_update_date gives the date of every profile. Items with an email or a name are not affected. A field the body or an item does not define is refused with 422 UNKNOWN_FIELD (the field, the one it most likely stands for, the accepted fields), never ignored: the task would otherwise run without it. An API key with credit limits must hold the whole reservation: a task that would take it over its daily, monthly or total limit is refused with KEY_CREDIT_LIMIT_REACHED before anything is reserved, and a started task counts against the key what it reserved, then only what it spent once it settles. The open tasks of a workspace (queued, running or paused, Bulk Import files of the app included) hold at most 50,000 items in all, in at most 50 tasks: two full tasks side by side. Past either limit the request is refused with 429 BULK_TASK_LIMIT_REACHED before anything is reserved (error.details: limit, openTasks, openItems, maxOpenTasks, maxOpenItems, items, retryAfter): send it again once a task has settled, or cancel one. Tasks open at once share the per-minute limit, so they do not finish sooner than one after the other. Following a task, cancelling it and downloading its results stay open at a zero balance. Credits: the unit price of each item, as /v2/enrich/persons, /v2/fetch/persons and /v2/contact/*. The request itself is free.
          */
         post: operations["bulkEnrichPersons"];
         delete?: never;
@@ -1768,7 +1768,7 @@ export interface components {
              * @description Current position started within the last N days
              * @enum {integer}
              */
-            changedJobsWithinDays?: 30 | 60 | 90 | 120;
+            changedJobsWithinDays?: 30 | 60 | 90 | 120 | 180 | 365 | 730;
             location?: {
                 /** @description Country name (e.g. "France") */
                 country?: string | string[];
@@ -1936,7 +1936,7 @@ export interface components {
              * @description Current position started within the last N days
              * @enum {integer}
              */
-            changedJobsWithinDays?: 30 | 60 | 90 | 120;
+            changedJobsWithinDays?: 30 | 60 | 90 | 120 | 180 | 365 | 730;
             location?: {
                 /** @description Country name (e.g. "France") */
                 country?: string | string[];
@@ -6194,6 +6194,17 @@ export interface operations {
             /** @description Schema or validation error, unresolved internal id, or disposable email domain, or an Idempotency-Key already used with a different body (IDEMPOTENCY_KEY_REUSED) */
             422: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+            /** @description BULK_TASK_LIMIT_REACHED: the open tasks of the workspace already number 50, or would hold more than 50,000 items with this one. Send the task again once one has settled: error.details.retryAfter (120 seconds) is a hint, not the moment a task settles. Or the rate limit, or the API key reached its daily or monthly credit limit (KEY_CREDIT_LIMIT_REACHED): wait Retry-After (error.details.retryAfter) seconds, then retry. */
+            429: {
+                headers: {
+                    /** @description Seconds to wait before sending the task again */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 (2026-11-16)
+
+- `search.people` and `search.countPeople` type `changedJobsWithinDays` as `30 | 60 | 90 | 120 | 180 | 365 | 730`: the API now also accepts 180, 365 and 730 days, about 6, 12 and 24 months, as start dates are known to the month.
+- `bulk.enrichPersons` can fail with `RateLimitError` and the code `BULK_TASK_LIMIT_REACHED`: the open Bulk tasks of a workspace (queued, running or paused) hold at most 50,000 items in all, in at most 50 tasks. The SDK does not retry it, since its `retryAfter` is 120 seconds: send the task again once one has settled. The generated types now describe this `429` on `POST /v2/bulk`.
+
 ## 0.5.2 (2026-11-12)
 
 - `bulk.enrichPersons` takes `liveIfOlderThanDays`, a live mode of its own that needs no `live: true`: each item with a profile URL (`linkedinUrl`) reads our database first, and is scraped live only when the stored profile is that many days old or more, undated, or missing. A recent profile costs 1 credit (the fetch price) instead of 2; the task still reserves the live price and gives the difference back when it settles. Each `TaskResultLine` of such a task carries `source`, `cache` or `live` (null when no profile was delivered).
