@@ -829,6 +829,7 @@ export interface components {
                 allowDailyOvercost: boolean;
                 dailyLimit?: components["schemas"]["V2LimitInfo"] | null;
                 minuteRateLimit: components["schemas"]["V2LimitInfo"];
+                bulkShare: number | null;
             };
             key: {
                 /** @description API key identifier */

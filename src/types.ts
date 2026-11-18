@@ -47,6 +47,12 @@ export interface Quotas {
     allowDailyOvercost: boolean | null
     minuteRateLimit: LimitInfo | null
     dailyLimit: LimitInfo | null
+    /**
+     * Share of the per-minute rate limit, in percent, that the workspace's
+     * background tasks (Bulk tasks, List imports, Search exports) can take.
+     * Set in the app under Settings, Workspace, General.
+     */
+    bulkShare: number | null
   }
   key: {
     id: string

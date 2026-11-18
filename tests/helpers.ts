@@ -10,7 +10,8 @@ export const quotas = {
     hasUnlimitedCredits: null,
     allowDailyOvercost: null,
     minuteRateLimit: null,
-    dailyLimit: null
+    dailyLimit: null,
+    bulkShare: 80
   },
   key: null
 }

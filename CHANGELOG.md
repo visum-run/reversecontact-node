@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4 (2026-11-18)
+
+- `usage.retrieve` returns `quotas.workspace.bulkShare`: the share of the per-minute rate limit, in percent, that the background tasks of the workspace (Bulk tasks, List imports and Search exports) can take. It was a fixed 80% and is now a workspace setting, from 10 to 90, changed in the app under Settings, Workspace, General. The API only reads it.
+
 ## 0.5.3 (2026-11-16)
 
 - `search.people` and `search.countPeople` type `changedJobsWithinDays` as `30 | 60 | 90 | 120 | 180 | 365 | 730`: the API now also accepts 180, 365 and 730 days, about 6, 12 and 24 months, as start dates are known to the month.
