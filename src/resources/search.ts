@@ -98,7 +98,7 @@ export class Search {
     return page<Data<'searchOrganizations'>>(
       this.transport,
       'POST',
-      '/v2/search/organizations',
+      '/v2/search/companies',
       params,
       options
     )
@@ -116,7 +116,7 @@ export class Search {
     return page<Data<'searchOrganizationsByPrompt'>>(
       this.transport,
       'POST',
-      '/v2/search/organizations/prompt',
+      '/v2/search/companies/prompt',
       params,
       options
     )
@@ -128,7 +128,7 @@ export class Search {
   ): Promise<Result<Data<'countOrganizations'>>> {
     return this.transport.request<Data<'countOrganizations'>>(
       'POST',
-      '/v2/search/organizations/count',
+      '/v2/search/companies/count',
       params,
       options
     )
@@ -148,7 +148,7 @@ export class Search {
   ): Promise<Result<Data<'searchOrganizationsAvailableFields'>>> {
     return this.transport.request<Data<'searchOrganizationsAvailableFields'>>(
       'GET',
-      '/v2/search/organizations/available-fields',
+      '/v2/search/companies/available-fields',
       undefined,
       options
     )

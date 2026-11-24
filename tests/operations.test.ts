@@ -19,6 +19,7 @@ const spec = (hasInputs ? JSON.parse(readFileSync(specPath, 'utf8')) : { paths: 
       string,
       {
         operationId?: string
+        deprecated?: boolean
         requestBody?: unknown
         parameters?: { in: string; name: string; schema: { type: string; enum?: string[] } }[]
       }
@@ -27,7 +28,8 @@ const spec = (hasInputs ? JSON.parse(readFileSync(specPath, 'utf8')) : { paths: 
 }
 const operations = Object.entries(spec.paths).flatMap(([path, methods]) =>
   Object.entries(methods)
-    .filter(([, operation]) => operation.operationId)
+    // A deprecated operation is a former path that redirects to its successor.
+    .filter(([, operation]) => operation.operationId && !operation.deprecated)
     .map(([method, operation]) => ({ path, method, operation }))
 )
 

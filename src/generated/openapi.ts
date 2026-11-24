@@ -144,7 +144,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/search/organizations": {
+    "/v2/search/companies": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,7 +164,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/search/organizations/prompt": {
+    "/v2/search/companies/prompt": {
         parameters: {
             query?: never;
             header?: never;
@@ -175,7 +175,7 @@ export interface paths {
         put?: never;
         /**
          * Agentic Organization Search
-         * @description Describe the organizations to find in plain language: the prompt is read into Organization Search filters, then the matching full organization profiles are returned as an Organization Search page. The filters applied and anything the prompt asked for that no filter covers are returned at data.interpretation. Pass metadata.nextCursor back as cursor with the same prompt for the next page: a prompt keeps the filters it was read into for 24 hours, so every page runs on the same filters. Send filters only through the prompt; to set them explicitly, use /v2/search/organizations. A prompt no filter can be read from returns 422 NO_FILTERS_INTERPRETED and costs 0 credits. Credits: 1 per page for the search itself, even when no organization matches, plus 1 per organization delivered. A prompt refused before the search costs 0.
+         * @description Describe the organizations to find in plain language: the prompt is read into Organization Search filters, then the matching full organization profiles are returned as an Organization Search page. The filters applied and anything the prompt asked for that no filter covers are returned at data.interpretation. Pass metadata.nextCursor back as cursor with the same prompt for the next page: a prompt keeps the filters it was read into for 24 hours, so every page runs on the same filters. Send filters only through the prompt; to set them explicitly, use /v2/search/companies. A prompt no filter can be read from returns 422 NO_FILTERS_INTERPRETED and costs 0 credits. Credits: 1 per page for the search itself, even when no organization matches, plus 1 per organization delivered. A prompt refused before the search costs 0.
          */
         post: operations["searchOrganizationsByPrompt"];
         delete?: never;
@@ -184,7 +184,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/search/organizations/count": {
+    "/v2/search/companies/count": {
         parameters: {
             query?: never;
             header?: never;
@@ -224,7 +224,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v2/search/organizations/available-fields": {
+    "/v2/search/companies/available-fields": {
         parameters: {
             query?: never;
             header?: never;
@@ -236,6 +236,90 @@ export interface paths {
          * @description Returns metadata for every filter accepted by organization search. Credits: 0 (free).
          */
         get: operations["searchOrganizationsAvailableFields"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/search/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search organizations (deprecated path)
+         * @deprecated
+         * @description Deprecated path: answers 308 Permanent Redirect to POST /v2/search/companies, which serves the same request and returns the same response. An HTTP client that follows redirects resends the same method, headers and body there; otherwise call the new path directly. The redirect itself needs no API key, is never billed and does not count toward rate limits: only the request to the new path is. Credits: 0 for the redirect.
+         */
+        post: operations["searchOrganizationsDeprecated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/search/organizations/prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Agentic Organization Search (deprecated path)
+         * @deprecated
+         * @description Deprecated path: answers 308 Permanent Redirect to POST /v2/search/companies/prompt, which serves the same request and returns the same response. An HTTP client that follows redirects resends the same method, headers and body there; otherwise call the new path directly. The redirect itself needs no API key, is never billed and does not count toward rate limits: only the request to the new path is. Credits: 0 for the redirect.
+         */
+        post: operations["searchOrganizationsByPromptDeprecated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/search/organizations/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Count organizations (deprecated path)
+         * @deprecated
+         * @description Deprecated path: answers 308 Permanent Redirect to POST /v2/search/companies/count, which serves the same request and returns the same response. An HTTP client that follows redirects resends the same method, headers and body there; otherwise call the new path directly. The redirect itself needs no API key, is never billed and does not count toward rate limits: only the request to the new path is. Credits: 0 for the redirect.
+         */
+        post: operations["countOrganizationsDeprecated"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v2/search/organizations/available-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Organization search available fields (deprecated path)
+         * @deprecated
+         * @description Deprecated path: answers 308 Permanent Redirect to GET /v2/search/companies/available-fields, which serves the same request and returns the same response. An HTTP client that follows redirects resends the same method, headers and body there; otherwise call the new path directly. The redirect itself needs no API key, is never billed and does not count toward rate limits: only the request to the new path is. Credits: 0 for the redirect.
+         */
+        get: operations["searchOrganizationsAvailableFieldsDeprecated"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3312,6 +3396,110 @@ export interface operations {
             /** @description Data subject blocked. The profile has been removed per GDPR/CCPA data subject request. */
             451: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    searchOrganizationsDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moved to /v2/search/companies */
+            308: {
+                headers: {
+                    /** @description /v2/search/companies, with the query string of the request. */
+                    Location?: string;
+                    /** @description RFC 9745 deprecation date of this path (November 23, 2026). */
+                    Deprecation?: string;
+                    /** @description The path that replaces this one. */
+                    Link?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    searchOrganizationsByPromptDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moved to /v2/search/companies/prompt */
+            308: {
+                headers: {
+                    /** @description /v2/search/companies/prompt, with the query string of the request. */
+                    Location?: string;
+                    /** @description RFC 9745 deprecation date of this path (November 23, 2026). */
+                    Deprecation?: string;
+                    /** @description The path that replaces this one. */
+                    Link?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    countOrganizationsDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moved to /v2/search/companies/count */
+            308: {
+                headers: {
+                    /** @description /v2/search/companies/count, with the query string of the request. */
+                    Location?: string;
+                    /** @description RFC 9745 deprecation date of this path (November 23, 2026). */
+                    Deprecation?: string;
+                    /** @description The path that replaces this one. */
+                    Link?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["V2ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    searchOrganizationsAvailableFieldsDeprecated: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Moved to /v2/search/companies/available-fields */
+            308: {
+                headers: {
+                    /** @description /v2/search/companies/available-fields, with the query string of the request. */
+                    Location?: string;
+                    /** @description RFC 9745 deprecation date of this path (November 23, 2026). */
+                    Deprecation?: string;
+                    /** @description The path that replaces this one. */
+                    Link?: string;
                     [name: string]: unknown;
                 };
                 content: {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0 (2026-11-24)
+
+- Organization Search now calls `/v2/search/companies`, its canonical path: `search.organizations`, `search.organizationsByPrompt`, `search.countOrganizations` and `search.organizationsFields` keep their names, requests and answers. The former `/v2/search/organizations` paths answer a `308` redirect to the same route under `/v2/search/companies`, never billed; earlier versions of the SDK keep working through it, since `fetch` follows redirects.
+- The generated types describe the former `/v2/search/organizations` paths as deprecated operations (`searchOrganizationsDeprecated`, `searchOrganizationsByPromptDeprecated`, `countOrganizationsDeprecated` and `searchOrganizationsAvailableFieldsDeprecated`): no SDK method calls them.
+
 ## 0.5.4 (2026-11-18)
 
 - `usage.retrieve` returns `quotas.workspace.bulkShare`: the share of the per-minute rate limit, in percent, that the background tasks of the workspace (Bulk tasks, List imports and Search exports) can take. It was a fixed 80% and is now a workspace setting, from 10 to 90, changed in the app under Settings, Workspace, General. The API only reads it.
